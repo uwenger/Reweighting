@@ -1,0 +1,17 @@
+'rew_m0.065_muI0.00_polR.dat'			Input file name
+8 4					Lattice size: lsize,tsize
+10.					Width of the bin
+8					Number of beta values
+5.067
+5.068
+5.069
+5.070
+5.071
+5.072
+5.073
+5.074
+0.001					delta beta
+10					number of new beta values
+5.070					starting beta value
+'L'					Quantity to calculate: L,S,C,B,R,E,H,P,E_0 for ratio of weights
+3					Number of deconfined phases
