@@ -35,6 +35,7 @@
 
 !     for the bootstrap:
       real*8 btrp_av,btrp_err
+      integer :: ibtrp
 
 !     the estimated integrated autocorrelation time 
 !     (used for calculating the error):
@@ -546,63 +547,69 @@ contains
       real*8 bc,err_bc
 !     the bias corrected critical beta:
       real*8 bc_corr
-
-
+      
 !     the beta values of the MC runs and the average beta_k(0):
       real*8 beta(0:max_nbeta)
 
 !     auxiliary variables:
       real*8 btrp_av,btrp_err
       integer nfail,nbound
+
       nfail=0
       nbound=0
+
+!      print *,'DEBUG: beta(0), bc, dble(bc)=',beta(0), bc, dble(bc)
+
+      
 !     loop over the bootstrap samples:
       do nb=0,nbtrp
-!     convert to double precision:
-      dbc=dble(bc)
+         ibtrp=nb ! store this globally to make it available in subroutine chi_beta
+         !     convert to double precision:
+         dbc=dble(bc)
 !     calculate the maximum of the susceptibility:
 !-------------------------------------------------
 !     the relative and absolute accuracy:
-      e1=1.d-8
-      e2=1.d-8
-!     lower and upper bound of search interval:
-      bound=0.01
-      low=dbc-bound
-      up=dbc+bound
-!     maximal number of calls:
-      max_cal=2000
-      ifail=-1
-!      print *,'Calling E04BBF:'
-      call E04BBF(chi_beta,e1,e2,low,up,max_cal,dbc,chi_max,chi_max_der,ifail)
-      chi_max=-chi_max
-      chi_max_der=-chi_max_der
+         e1=1.d-8
+         e2=1.d-8
+         !     lower and upper bound of search interval:
+         bound=0.01
+         low=dbc-bound
+         up=dbc+bound
+         !     maximal number of calls:
+         max_cal=2000
+         ifail=-1
+         !      print *,'Calling E04BBF:'
+         call E04BBF(chi_beta,e1,e2,low,up,max_cal,dbc,chi_max,chi_max_der,ifail)
+         chi_max=-chi_max
+         chi_max_der=-chi_max_der
 
-!     check if the solution is at the boundary of the search interval:
-      if(dbc.le.(bc-bound) .or. dbc.ge.(bc+bound)) nbound=nbound+1
+         !     check if the solution is at the boundary of the search interval:
+         if(dbc.le.(bc-bound) .or. dbc.ge.(bc+bound)) nbound=nbound+1
          
-      beta_c(nb)=real(dbc)+beta(0)
-      if(ifail.ne.0) then
-         print *,'**********************'
-         print *,'Maximization failed!'
-         print *,'nb=',nb
-         print *,'ifail=',ifail
-         print *,'**********************'
-         print *,'low,up=',low,up
-         print *,'max_cal=',max_cal
-         print *,'chi_max_der=',chi_max_der
-         nfail=nfail+1
-         beta_c(nb)=0.
-      endif
-      if((ifail.ne.0) .and. (nb==0)) then
-         print *,'**********************'
-         print *,'Maximization failed!'
-         print *,'on original data set!'
-         print *,'**********************'
-         print *,'ifail=',ifail
-         print *,'low,up=',low,up
-         print *,'max_cal=',max_cal
-         print *,'chi_max_der=',chi_max_der
-      endif
+         beta_c(nb)=real(dbc)+beta(0)
+!         print *,'DEBUG: nb, beta_c(nb)=', nb, beta_c(nb)
+         if(ifail.ne.0) then
+            print *,'**********************'
+            print *,'Maximization failed!'
+            print *,'nb=',nb
+            print *,'ifail=',ifail
+            print *,'**********************'
+            print *,'low,up=',low,up
+            print *,'max_cal=',max_cal
+            print *,'chi_max_der=',chi_max_der
+            nfail=nfail+1
+            beta_c(nb)=0.
+         endif
+         if((ifail.ne.0) .and. (nb==0)) then
+            print *,'**********************'
+            print *,'Maximization failed!'
+            print *,'on original data set!'
+            print *,'**********************'
+            print *,'ifail=',ifail
+            print *,'low,up=',low,up
+            print *,'max_cal=',max_cal
+            print *,'chi_max_der=',chi_max_der
+         endif
 !      print *,'max_cal,beta_c=',max_cal,beta_c(nb)
 
 !     end of loop over the bootstrap samples:
@@ -677,15 +684,17 @@ contains
 
       real*8 dbeta,chi,chi_der
 
+      ! The following are globally defined:
+      !------------------------------------
 !     number of bins:
-      integer nbin
+!      integer nbin
 !     energy of the bins:
-      real*8 bin_energy(0:max_nbin)
+!      real*8 bin_energy(0:max_nbin)
 !     the distributions:
-      real*8 en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
+!      real*8 en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
 
 !     the effective observable at action S:
-      real*8 eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
+!      real*8 eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
 
 !     the energy averages:
       real*8 act_av(0:max_nbeta)
@@ -710,6 +719,8 @@ contains
       integer i
       real*8 aux,L,L2,L2S,LS,S
 
+
+      nb = ibtrp
 !     calculate the normalization factor Sum_S Wbar(S) exp(-dbeta*dS):
 !      print *,'Calculating the normalization:'
       aux=0.
@@ -717,8 +728,12 @@ contains
 !      print *,'dbeta=',dbeta
       do i=0,nbin
          aux=aux+en_dens(i,nb)*exp(-dbeta*bin_energy(i))
+!         print *,'DEBUG: en_dens, bin_energy=',i,en_dens(i,nb), bin_energy(i)
       enddo
+!      print *,'DEBUG: aux=',aux
 
+
+      
 !     calculate the new probability:
 !      print *,'Calculating new prop.:'
       do i=0,nbin
@@ -797,6 +812,8 @@ contains
 !      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
 !     &       beta+dbeta,-lsize**3*chi,-chi_der
       endif
+
+!      print *,'DEBUG in subroutine chi_beta: nb=', nb, dbeta, chi, chi_der
 
 !      print *,'dbeta,chi,chi_der=',dbeta,chi,chi_der
 
@@ -1003,7 +1020,11 @@ contains
  
 !     random variables:
       integer irvar,iseed
-      real*8 rvar,ranf
+      real*8 rvar!,ranf
+
+      integer,parameter :: dp=selected_real_kind(14)
+      real(kind=dp), dimension(1:1) :: r
+
 
 !     which quantity to calculate: L -> abs. value of the Polyakov loop
 !                                  S -> Pol. loop susceptibility
@@ -1014,8 +1035,6 @@ contains
       real*8 av_obs(1:max_nbeta,0:nbtrp),av_obs2(1:max_nbeta,0:nbtrp),aux,aux2,norm,pk
 
 
-
-      print *,'here'
 !     read in the data file name again:
 !-------------------------------------------------------------------
       open(55,file='in_fs_multi.dat',form='formatted',status='old')
@@ -1116,10 +1135,25 @@ contains
 !$$$            read(55,*,end=435) beta_read,act,obs,aux,aux
 !$$$            obs = abs(obs)
 !---------------------------------------------------
-!     this is for the canonical data from Philippe, prepared with &
-!     combine_data.f90:
+!!$!     this is for the canonical data from Philippe, prepared with &
+!!$!     combine_data.f90:
+!!$            read(55,*,end=435) beta_read,act,obs,aux
+!!$            act=(1.-act)*lsize**3*tsize*6 
+!!$            if (Quantity.eq.'C' .or. quantity.eq.'c' .or. &
+!!$                quantity.eq.'H' .or. quantity.eq.'h') then
+!!$               obs = act/float(lsize**3*tsize) !energy per site
+!!$            elseif(quantity.eq.'E' .or. quantity.eq.'e') then
+!!$               obs = act/float(lsize**3) !internal energy
+!!$            elseif(quantity.eq.'B' .or. quantity.eq.'b') then
+!!$               obs = (act/float(lsize**3))**2
+!!$            elseif(quantity.eq.'R' .or. quantity.eq.'r') then
+!!$               obs = act/float(lsize**3)
+!!$            elseif(quantity.eq.'P' .or. quantity.eq.'p') then
+!!$               obs = aux
+!!$            endif
+!---------------------------------------------------
+!     this is for Kieran's finite-T FP data:
             read(55,*,end=435) beta_read,act,obs,aux
-            act=(1.-act)*lsize**3*tsize*6 
             if (Quantity.eq.'C' .or. quantity.eq.'c' .or. &
                 quantity.eq.'H' .or. quantity.eq.'h') then
                obs = act/float(lsize**3*tsize) !energy per site
@@ -1149,6 +1183,11 @@ contains
                   else
                      av_obs2(k,0)=av_obs2(k,0)+1.
                   endif
+                  if(act .lt. e0) then
+                     ir0 = ir0 + 1
+                  else
+                     ir1 = ir1 + 1
+                  endif
                else
                   av_obs(k,0)=av_obs(k,0)+obs
                   av_obs2(k,0)=av_obs2(k,0)+obs**2
@@ -1156,11 +1195,6 @@ contains
 !     the measured quantities:
                energy(nmeas(k),k)=act
                obsrvb(nmeas(k),k)=obs
-               if(act .lt. e0) then
-                  ir0 = ir0 + 1
-               else
-                  ir1 = ir1 + 1
-               endif
             endif
          enddo
          print *,'End of file reached, number of lines in data file'
@@ -1223,7 +1257,7 @@ contains
 !     calculate the bin width for the observable:
       obsbin_width=(max_obs-min_obs)/60.
       if(nbin.gt.max_nbin) then
-         print *,'Number of bins is too big, decrease bin width!'
+         print *,'Number of bins is too big, increase bin width!'
          print *,'or increase max_nbin!'
          print *,'nbin, max_nbin=',nbin, max_nbin
          stop
@@ -1327,7 +1361,11 @@ contains
 !     ranlux generator:
       level=1
       call rlxd_init(level,iseed)
-! -------------------------------
+      ! -------------------------------
+!!$      do k=1,nbeta
+!!$         call ranlxd(r)
+!!$         print *,'ranf()',1.0-ranf(), r(1)
+!!$      enddo
 
 !     write out the normalized distributions:
 !      print *,'Writing out the distribution:'
@@ -1351,11 +1389,15 @@ contains
 !     generate a bootstrap sample by picking one of the blocks:
 !     the number of blocks:
          nblock=nmeas(k)/blocksize
+!         print *,'DEBUG: k,nblock=', k, nblock
          av_obs(k,nb)=0.
          av_obs2(k,nb)=0.
          do j=1,nblock
-            rvar=ranf()
+            !            rvar=ranf()
+            call ranlxd(r)
+            rvar = 1.0 - r(1)
             irvar=int(rvar*nblock)+1
+!            print *,'DEBUG: rvar,irvar=',rvar,irvar
             do i=1,blocksize
 !     and do the binning: 
                act=energy((irvar-1)*blocksize+i,k)
@@ -1365,17 +1407,17 @@ contains
                en_prob(bin_number,k,nb)=en_prob(bin_number,k,nb)+1.
 !     calculate the effective observable:
                eff_obs(bin_number,k,nb)=eff_obs(bin_number,k,nb)+obs
-             eff_obs2(bin_number,k,nb)=eff_obs2(bin_number,k,nb)+obs**2 
-             if(quantity.eq.'R' .or. quantity.eq.'r') then
+               eff_obs2(bin_number,k,nb)=eff_obs2(bin_number,k,nb)+obs**2 
+               if(quantity.eq.'R' .or. quantity.eq.'r') then
                   if (obs.lt.e0) then
                      av_obs(k,nb)=av_obs(k,nb)+1.
                   else
                      av_obs2(k,nb)=av_obs2(k,nb)+1.
                   endif
-             else
-                av_obs(k,nb)=av_obs(k,nb)+obs
-                av_obs2(k,nb)=av_obs2(k,nb)+obs**2
-             endif
+               else
+                  av_obs(k,nb)=av_obs(k,nb)+obs
+                  av_obs2(k,nb)=av_obs2(k,nb)+obs**2
+               endif
             enddo
          enddo
 !     normalize the distribution and the observable:
@@ -1580,7 +1622,7 @@ contains
 !----------------------------------------------------------------------
 !     in order to get the unique spectral density function 
 !     Wbar(S) ( = en_dens(0:nbin,0:nbtrp)):
-      print *,'solve now for the free energies'
+      print *,'Solve now for the free energies'
       call solve_fe(nbin,nbeta,nmeas,bin_energy,fe,dbeta,en_prob,gtau,en_dens)
 
 
@@ -2050,14 +2092,15 @@ contains
 !     the spectral density:
       real*8 wbar(0:nbin)
 
-!     set the initial free energies:
-         do k=1,nbeta
-            fe(k)=fe0(k,nb)
-         enddo
 
 !     start loop over the bootstrap samples:
       do nb=0,nbtrp
 !         print *,'Bootstrap sample:',nb
+
+         !     set the initial free energies:
+         do k=1,nbeta
+            fe(k)=fe0(k,nb)
+         enddo
 
 !     start the iteration:
       do ii=1,iter
@@ -2475,8 +2518,9 @@ contains
       real(kind=dp), dimension(1:1) :: r
       
       call ranlxd(r)
-      ranf=1.0-r(1)
-
+      ranf=1.0_dp-r(1)
+!      write(*,'("DEBUG: r(1)=",f24.16)') r(1)
+!      stop
       return
     end function ranf
 
