@@ -1,4 +1,6 @@
 !     ifort -r8 -o fs_multi fs_multi.f90 ranlxd_generator.f90 fs_multi_par.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag 
+!     18/09/2025: to get rid of the warnings:
+!     ifort -r8 -o fs_multi fs_multi.f ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic      
 
       program fs_multi
 
@@ -9,65 +11,67 @@
 
       implicit none
 
+
+      
 !     number of  energy bins and measurements:
-      integer nbin,nmeas(0:max_nbeta)
+      integer :: nbin,nmeas(0:max_nbeta)
 !     the bin energies and the beta value:
-      real*8 bin_energy(0:max_nbin),beta_pr
+      real(kind=dp) :: bin_energy(0:max_nbin),beta_pr
 
 !     the spectral density:
-      real*8 en_dens(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     the probability distributions:
-      real*8 new_en_prob(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: new_en_prob(0:max_nbin,0:nbtrp)
 
 !     the effective observable at action S:
-      real*8 eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
 !     the new observable and its error:
-      real*8 obs(0:nbtrp),obs2(0:nbtrp)
+      real(kind=dp) :: obs(0:nbtrp),obs2(0:nbtrp)
 
 !     the input file name:
       character*70 in_fname
 !     the width of the bin:
-      real*8 bin_width 
+      real(kind=dp) :: bin_width 
 !     the beta values of the MC runs and the average beta_k(0):
       integer nbeta,ndbeta
-      real*8 beta(0:max_nbeta),dbeta
+      real(kind=dp) :: beta(0:max_nbeta),dbeta
 
 !     for the bootstrap:
-      real*8 btrp_av,btrp_err
+      real(kind=dp) :: btrp_av,btrp_err
       integer :: ibtrp
 
 !     the estimated integrated autocorrelation time 
 !     (used for calculating the error):
-      real*8 tau_avg
+      real(kind=dp) :: tau_avg
 
 !     the average
-      real*8 act_av(0:max_nbeta)
+      real(kind=dp) :: act_av(0:max_nbeta)
 
 !     which quantity to calculate: L -> abs. value of the Polyakov loop
 !                                  S -> Pol. loop susceptibility
       character*1 quantity
 
 !     the average beta value
-      real*8 beta0
+      real(kind=dp) :: beta0
       
 !     for estimating the max. of the susceptibility:
-      real*8 chi_max,beta_max
+      real(kind=dp) :: chi_max,beta_max
 
 !     the bias corrected critical beta:
-      real*8 beta_corr
+      real(kind=dp) :: beta_corr
 
 !     the lattice size:
       integer lsize,tsize
-      real*8 vol
+      real(kind=dp) :: vol
 
 !     the energy for the ratio of weights:
-      real*8 e0
+      real(kind=dp) :: e0
 !     and the number of deconfined phases:
       integer nc
 
 !     auxiliary variables:
-      real*8 e2, e4, aux, aux2
+      real(kind=dp) :: e2, e4, aux, aux2
       integer i,j,nfail,k
 
 
@@ -178,6 +182,7 @@
 !     chi_pol=(<|P|^2> - <|P|>^2):
             do j=0,nbtrp
                obs(j)=lsize**3*(obs2(j)-obs(j)**2)
+!               print *,'j,obs(j)=',j,obs(j)
             enddo
 !     find a crude approximation of the max. of the susceptibility:
             if(obs(0).gt.chi_max) then
@@ -536,23 +541,23 @@ contains
       integer nb
 
 !     variables for the NAG-routine (in double precision):
-      real*8 chi_max,chi_max_der,e1,e2,low,up,dbc,bound
+      real(kind=dp) :: chi_max,chi_max_der,e1,e2,low,up,dbc,bound
       integer max_cal,ifail
 !      external chi_beta
 
 !     the bootstrap maximum locations:
-      real*8 beta_c(0:nbtrp)
+      real(kind=dp) :: beta_c(0:nbtrp)
 
 !     the critical beta and its error:
-      real*8 bc,err_bc
+      real(kind=dp) :: bc,err_bc
 !     the bias corrected critical beta:
-      real*8 bc_corr
+      real(kind=dp) :: bc_corr
       
 !     the beta values of the MC runs and the average beta_k(0):
-      real*8 beta(0:max_nbeta)
+      real(kind=dp) :: beta(0:max_nbeta)
 
 !     auxiliary variables:
-      real*8 btrp_av,btrp_err
+      real(kind=dp) :: btrp_av,btrp_err
       integer nfail,nbound
 
       nfail=0
@@ -682,25 +687,25 @@ contains
 
       implicit none
 
-      real*8 dbeta,chi,chi_der
+      real(kind=dp) :: dbeta,chi,chi_der
 
       ! The following are globally defined:
       !------------------------------------
 !     number of bins:
 !      integer nbin
 !     energy of the bins:
-!      real*8 bin_energy(0:max_nbin)
+!      real(kind=dp) :: bin_energy(0:max_nbin)
 !     the distributions:
-!      real*8 en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
+!      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
 
 !     the effective observable at action S:
-!      real*8 eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
+!      real(kind=dp) :: eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
 
 !     the energy averages:
-      real*8 act_av(0:max_nbeta)
+      real(kind=dp) :: act_av(0:max_nbeta)
 
 !     the energy for the ratio of weights:
-      real*8 e0
+      real(kind=dp) :: e0
       integer nc
 
 !     bootstrap sample number:
@@ -710,14 +715,14 @@ contains
       character*1 quantity
 
 !     the average beta value
-      real*8 beta
+      real(kind=dp) :: beta
 
 !     the lattice size:
       integer lsize,tsize
 
 !     auxiliary variables:
       integer i
-      real*8 aux,L,L2,L2S,LS,S
+      real(kind=dp) :: aux,L,L2,L2S,LS,S
 
 
       nb = ibtrp
@@ -834,13 +839,13 @@ contains
       integer nbin
 
 !     the new distribution:
-      real*8 new_en_prob(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: new_en_prob(0:max_nbin,0:nbtrp)
 
 !     the effective observable at action S:
-      real*8 eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: eff_obs(0:max_nbin,0:nbtrp),eff_obs2(0:max_nbin,0:nbtrp)
 
 !     the observable and its error:
-      real*8 obs(0:nbtrp),obs2(0:nbtrp)
+      real(kind=dp) :: obs(0:nbtrp),obs2(0:nbtrp)
 
 !     auxiliary variables:
       integer i,j
@@ -875,19 +880,19 @@ contains
       integer nbin
 
 !     energy of the bins:
-      real*8 bin_energy(0:nbin)
+      real(kind=dp) :: bin_energy(0:nbin)
 !     the average of the action:
-      real*8 act_av(0:max_nbeta)
+      real(kind=dp) :: act_av(0:max_nbeta)
 
 !     the difference beta value: 
-      real*8 dbeta
+      real(kind=dp) :: dbeta
 
 !     the distributions:
-      real*8 en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp),new_en_prob(0:max_nbin,0:nbtrp)
 
 !     auxiliary variables:
       integer i,nb
-      real*8 aux,act
+      real(kind=dp) :: aux,act
 
 !     loop over the bootstrap samples:
       do nb=0,nbtrp
@@ -955,45 +960,45 @@ contains
       character*70 in_fname
 
 !     the width of the bin:
-      real*8 bin_width 
+      real(kind=dp) :: bin_width 
 !     energy of the bins:
-      real*8 bin_energy(0:max_nbin)
+      real(kind=dp) :: bin_energy(0:max_nbin)
 
 !     number of beta values:
       integer nbeta
 
 !     the free energies (guess values):
-      real*8 fe(1:nbeta,0:nbtrp)
+      real(kind=dp) :: fe(1:nbeta,0:nbtrp)
 
 !     the energy averages:
-      real*8 act_av(0:max_nbeta)
+      real(kind=dp) :: act_av(0:max_nbeta)
 
 !     the beta values of the MC runs:
-      real*8 beta(0:max_nbeta),beta_read
+      real(kind=dp) :: beta(0:max_nbeta),beta_read
 !     and the beta differences:
-      real*8 dbeta(1:nbeta)
+      real(kind=dp) :: dbeta(1:nbeta)
 
 !     the action and the observable:
-      real*8 act,obs,min_act(0:nbeta),max_act(0:nbeta)
-      real*8 energy(1:max_meas,1:nbeta),obsrvb(1:max_meas,1:nbeta)
+      real(kind=dp) :: act,obs,min_act(0:nbeta),max_act(0:nbeta)
+      real(kind=dp) :: energy(1:max_meas,1:nbeta),obsrvb(1:max_meas,1:nbeta)
 
 !     the distributions:
-      real*8 en_prob(0:max_nbin,1:max_nbeta,0:nbtrp)
+      real(kind=dp) :: en_prob(0:max_nbin,1:max_nbeta,0:nbtrp)
 
 !     the spectral densities:
-      real*8 en_dens(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     the effective observable at action S:
-      real*8 eff_obs(0:max_nbin,1:max_nbeta,0:nbtrp), &
+      real(kind=dp) :: eff_obs(0:max_nbin,1:max_nbeta,0:nbtrp), &
           eff_obs2(0:max_nbin,1:max_nbeta,0:nbtrp)
-      real*8 obs_bar(0:max_nbin,0:nbtrp),obs2_bar(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: obs_bar(0:max_nbin,0:nbtrp),obs2_bar(0:max_nbin,0:nbtrp)
 
 !     the errors on the distributions from the autocorrelation times:
-      real*8 gtau(1:nbeta),tau(1:nbeta)
+      real(kind=dp) :: gtau(1:nbeta),tau(1:nbeta)
 
 !     the estimated averaged integrated autocorrelation time 
 !     (used for calculating the error):
-      real*8 tau_avg
+      real(kind=dp) :: tau_avg
 
 !     counts the number of measurements(nmeas(0) being the total number
 !     of measurements):
@@ -1004,23 +1009,23 @@ contains
 
 !     for binning the observable:
       integer obsbin_number
-      real*8 obsbin_width,obs_prob(0:60,max_nbeta),obsbin_val(0:60),min_obs,max_obs
+      real(kind=dp) :: obsbin_width,obs_prob(0:60,max_nbeta),obsbin_val(0:60),min_obs,max_obs
 
 !     for the observable probability distribution:
-      real*8 obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
 
 
 !     the spatial and temporal lattice size:
       integer lsize,tsize
 
 !     the energy for the ratio of weights:
-      real*8 e0
+      real(kind=dp) :: e0
 !     for the calculation of the ratio of weights:
       integer ir0, ir1
  
 !     random variables:
       integer irvar,iseed
-      real*8 rvar!,ranf
+      real(kind=dp) :: rvar!,ranf
 
       integer,parameter :: dp=selected_real_kind(14)
       real(kind=dp), dimension(1:1) :: r
@@ -1032,7 +1037,7 @@ contains
 
 !     auxiliary variables:
       integer i,k,j,nb,nblock,ndbeta
-      real*8 av_obs(1:max_nbeta,0:nbtrp),av_obs2(1:max_nbeta,0:nbtrp),aux,aux2,norm,pk
+      real(kind=dp) :: av_obs(1:max_nbeta,0:nbtrp),av_obs2(1:max_nbeta,0:nbtrp),aux,aux2,norm,pk
 
 
 !     read in the data file name again:
@@ -1153,7 +1158,8 @@ contains
 !!$            endif
 !---------------------------------------------------
 !     this is for Kieran's finite-T FP data:
-            read(55,*,end=435) beta_read,act,obs,aux
+!            read(55,*,end=435) beta_read,act,aux,aux,obs
+            read(55,*,end=435) beta_read,act,obs,aux,aux
             if (Quantity.eq.'C' .or. quantity.eq.'c' .or. &
                 quantity.eq.'H' .or. quantity.eq.'h') then
                obs = act/float(lsize**3*tsize) !energy per site
@@ -1164,7 +1170,7 @@ contains
             elseif(quantity.eq.'R' .or. quantity.eq.'r') then
                obs = act/float(lsize**3)
             elseif(quantity.eq.'P' .or. quantity.eq.'p') then
-               obs = aux
+               !obs = obs
             endif
 !---------------------------------------------------
 
@@ -1332,7 +1338,6 @@ contains
       do i=0,60
          obs_prob(i,k)=obs_prob(i,k)/aux
       enddo
-
 !     end of loop over the beta values:
       enddo
 
@@ -1435,13 +1440,13 @@ contains
 !     end of loop over beta values:
       enddo
 
-!      do i=0,nbin
-!         act=bin_energy(i)+act_av(0)
-!     divide by the bin width for comparison:         
-!     write(55,*) act, en_prob(i)/bin_width
-!        write(55,'(4f15.8)') act,
-!    &        (en_prob(i,k,nb)/float(nblock*blocksize),k=1,nbeta)
-!      enddo
+!!$      do i=0,nbin
+!!$         act=bin_energy(i)+act_av(0)
+!!$         !     divide by the bin width for comparison:         
+!!$!!!$         write(55,*) act, en_prob(i)/bin_width
+!!$         write(55,'(4f15.8)') act, &
+!!$              (en_prob(i,k,nb)/float(nblock*blocksize),k=1,nbeta)
+!!$      enddo
       
 !     end of bootstrap loop:
       enddo
@@ -1477,6 +1482,7 @@ contains
          aux=0.
          do nb=1,nbtrp
             aux=aux+lsize**3*(av_obs2(k,nb)-av_obs(k,nb)**2)
+!            print *,'nb, av_obs(.,nb), av_obs2(.,nb)=', nb, av_obs(k,nb), av_obs2(k,nb)
          enddo
          aux=aux/float(nbtrp)
 !     calculate the error:
@@ -1628,8 +1634,7 @@ contains
 
 !     calculate the effective observable for every bootstrap sample:
 !-------------------------------------------------------------------
-!$$$      open(54,file='obs_btrp_distr.plo',form='formatted',
-!$$$     &       status='unknown')
+      open(54,file='obs_btrp_distr.plo',form='formatted',status='unknown')
 
 !     loop over the bootstrap samples:
       do nb=0,nbtrp
@@ -1698,7 +1703,7 @@ contains
 
 
 
-      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+!      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
 
 
 !$$$      do i=0,nbin
@@ -1731,13 +1736,13 @@ contains
       implicit none
 
 !     the spectral densities:
-      real*8 en_dens(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     for the observable probability distribution:
-      real*8 obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
 
 !     the bin values of the observable:
-      real*8 obsbin_val(0:60)
+      real(kind=dp) :: obsbin_val(0:60)
 
 !     number of energy bins:
       integer nbin
@@ -1746,15 +1751,15 @@ contains
       integer lsize,tsize
 
 !     auxiliary for calculating bootstrap error on obs. distribution:
-      real*8 paux(0:60,0:nbtrp)
+      real(kind=dp) :: paux(0:60,0:nbtrp)
 
 !     auxiliaries for finding the extremas:
       integer imin(0:nbtrp), imax1(0:nbtrp),imax2(0:nbtrp)
-      real*8 pmin,pmax1,pmax2
+      real(kind=dp) :: pmin,pmax1,pmax2
 
 !     auxiliaries:
       integer nb,i,j
-      real*8 norm,aux,err,fact,add
+      real(kind=dp) :: norm,aux,err,fact,add
 
 !     loop over bootstrap samples:
       do nb=0,nbtrp
@@ -2041,56 +2046,56 @@ contains
       implicit none
 
 !     number of bins:
-      integer nbin
+      integer :: nbin
 !     number of beta values:
-      integer nbeta
+      integer :: nbeta
 !     number of measurements:
-      integer nmeas(0:nbeta)
+      integer :: nmeas(0:nbeta)
 
 !     energy of the bins:
-      real*8 bin_energy(0:nbin)
+      real(kind=dp) :: bin_energy(0:nbin)
 
 !     the beta differences:
-      real*8 dbeta(1:nbeta)
+      real(kind=dp) :: dbeta(1:nbeta)
 
 !     the distributions (histograms):
-      real*8 en_prob(0:max_nbin,1:max_nbeta,0:nbtrp)
+      real(kind=dp) :: en_prob(0:max_nbin,1:max_nbeta,0:nbtrp)
 
 !     the error of the probability distributions:
-      real*8 gtau(1:nbeta)
+      real(kind=dp) :: gtau(1:nbeta)
 
 !     the spectral densities:
-      real*8 en_dens(0:max_nbin,0:nbtrp)
+      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     the free energies:
-      real*8 fe0(1:nbeta,0:nbtrp),fe(1:nbeta)
+      real(kind=dp) :: fe0(1:nbeta,0:nbtrp),fe(1:nbeta)
 
 !     the partition functions:
-      real*8 zbar(1:nbeta)
+      real(kind=dp) :: zbar(1:nbeta)
 
 !     F_k = f_k + Log(Zbar(beta_k,f_i))
-      real*8 ff(1:nbeta)
+      real(kind=dp) :: ff(1:nbeta)
 
 !     the curvature matrix:
-      real*8 mki(1:nbeta,1:nbeta)
+      real(kind=dp) :: mki(1:nbeta,1:nbeta)
 
 !     mf(k) == M_(ki)^{-1} F_i:
-      real*8 mf(1:nbeta)
+      real(kind=dp) :: mf(1:nbeta)
 
 !     some parameters concerning the iterative procedure:
 !--------------------------------------------------------
 !     max. number of iterations:
       integer iter
 !     absolute accuracy:
-      real*8 acc
+      real(kind=dp) :: acc
       parameter(iter=1000,acc=1.e-5)
 
 !     some auxiliary parameters:
 !-------------------------------
       integer nb,k,i,ii,ifail
-      real*8 nom,denom,aux,wkspce(1:nbeta),avg
+      real(kind=dp) :: nom,denom,aux,wkspce(1:nbeta),avg
 !     the spectral density:
-      real*8 wbar(0:nbin)
+      real(kind=dp) :: wbar(0:nbin)
 
 
 !     start loop over the bootstrap samples:
@@ -2111,65 +2116,65 @@ contains
 !     first get the density of states Wbar(S,f_i) for the given {f_i}:
 !         print *,'get the density of states Wbar(S,{f_i}):'
 !         print *,'fe=',fe
-!$$$!     loop over the energies:
-!$$$         do i=0,nbin
-!$$$!     calculate the numerator 'nom' and the denominator 'denom':
-!$$$            nom=0.
-!$$$            denom=0.
-!$$$            do k=1,nbeta
-!$$$               nom=nom+en_prob(i,k,nb)/gtau(k)
-!$$$               aux=exp(-dbeta(k)*bin_energy(i)+fe(k))
-!$$$               denom=denom+nmeas(k)*aux/gtau(k)
-!$$$            enddo
-!$$$!     the spectral density function:
-!$$$            wbar(i)=nom/denom
-!$$$!     end of loop over the energies:
-!$$$         enddo
-!$$$
-!$$$!     second get the function F_k:
-!$$$      print *,'get the function F_k({f_i}):'
-!$$$      do k=1,nbeta
-!$$$!     loop over the energies:
-!$$$         aux=0.
-!$$$         do i=0,nbin
-!$$$            aux=aux+wbar(i)*exp(-dbeta(k)*bin_energy(i))
-!$$$         enddo
-!$$$         ff(k)=fe(k)+log(aux)
-!$$$      enddo
-!$$$
-!$$$!     third get the curvature M_{ki}:
-!$$$      print *,'get the curvature M_{ki}:'
-!$$$      call get_mki(nbin,nbeta,nmeas,bin_energy,dbeta,gtau,fe,wbar,mki)
-!$$$
-!$$$!     invert the matrix, i.e. M_(ki)^{-1} F_i:
-!$$$      print *,'invert the matrix:'
-!$$$      ifail=-1
-!$$$      call F04ARF(mki,nbeta,ff,nbeta,mf,wkspce,ifail)
-!$$$      if(ifail.ne.0) then
-!$$$         print *,'ifail=',ifail
-!$$$         print *,'ifail=1 -> The matrix is singular!'
-!$$$      endif
-!$$$
-!$$$!     and calculate the new free energy values:
-!$$$      print *,'get the new free energy values:'
-!$$$      aux=0.
-!$$$      do k=1,nbeta
-!$$$         fe(k)=fe(k)-mf(k)
-!$$$         aux=max(aux,abs(mf(k)))
-!$$$      enddo
-!$$$
-!$$$      print '("Iteration",i6,": max. correction=",f15.9)',ii,aux
-!$$$      print '("fe:",20f15.6)',fe
-!$$$      if(aux.lt.acc) then
-!$$$         print *,'desired accuracy reached!'
-!$$$         goto 678
-!$$$      endif
-!$$$
-!$$$!     end of iteration loop:
-!$$$      enddo
-!$$$      print '("No solution found after",i6," iterations!")',iter
-!$$$
-!$$$ 678  continue
+!!$!     loop over the energies:
+!!$         do i=0,nbin
+!!$!     calculate the numerator 'nom' and the denominator 'denom':
+!!$            nom=0.
+!!$            denom=0.
+!!$            do k=1,nbeta
+!!$               nom=nom+en_prob(i,k,nb)/gtau(k)
+!!$               aux=exp(-dbeta(k)*bin_energy(i)+fe(k))
+!!$               denom=denom+nmeas(k)*aux/gtau(k)
+!!$            enddo
+!!$!     the spectral density function:
+!!$            wbar(i)=nom/denom
+!!$!     end of loop over the energies:
+!!$         enddo
+!!$
+!!$!     second get the function F_k:
+!!$      print *,'get the function F_k({f_i}):'
+!!$      do k=1,nbeta
+!!$!     loop over the energies:
+!!$         aux=0.
+!!$         do i=0,nbin
+!!$            aux=aux+wbar(i)*exp(-dbeta(k)*bin_energy(i))
+!!$         enddo
+!!$         ff(k)=fe(k)+log(aux)
+!!$      enddo
+!!$
+!!$!     third get the curvature M_{ki}:
+!!$      print *,'get the curvature M_{ki}:'
+!!$      call get_mki(nbin,nbeta,nmeas,bin_energy,dbeta,gtau,fe,wbar,mki)
+!!$
+!!$!     invert the matrix, i.e. M_(ki)^{-1} F_i:
+!!$      print *,'invert the matrix:'
+!!$      ifail=-1
+!!$      call F04ARF(mki,nbeta,ff,nbeta,mf,wkspce,ifail)
+!!$      if(ifail.ne.0) then
+!!$         print *,'ifail=',ifail
+!!$         print *,'ifail=1 -> The matrix is singular!'
+!!$      endif
+!!$
+!!$!     and calculate the new free energy values:
+!!$      print *,'get the new free energy values:'
+!!$      aux=0.
+!!$      do k=1,nbeta
+!!$         fe(k)=fe(k)-mf(k)
+!!$         aux=max(aux,abs(mf(k)))
+!!$      enddo
+!!$
+!!$      print '("Iteration",i6,": max. correction=",f15.9)',ii,aux
+!!$      print '("fe:",20f15.6)',fe
+!!$      if(aux.lt.acc) then
+!!$         print *,'desired accuracy reached!'
+!!$         exit
+!!$      endif
+!!$
+!!$!     end of iteration loop:
+!!$      enddo
+!!$      if(ii>=iter) then
+!!$         print '("No solution found after",i6," iterations!")',iter
+!!$      endif
  
 !     checking the solution:
 !------------------------------------------------------
@@ -2215,18 +2220,17 @@ contains
          aux=max(aux,abs(mf(k)))
          fe(k)=ff(k)
       enddo
-!      print '("Iteration",i6,": max. correction=",5f15.9)',ii,
-!     &     (mf(k),k=1,nbeta)
-!      print '("fe:",20f15.6)',fe
-      if(aux.lt.acc) then
-!         print *,'desired accuracy reached!'
-         goto 678
-      endif
+!!$      print '("Iteration",i6,": max. correction=",5f15.9)',ii,(mf(k),k=1,nbeta)
+!!$      print '("fe:",20f15.6)',fe
+!!$      if(aux.lt.acc) then
+!!$         print *,'desired accuracy reached!'
+!!$         goto 679
+!!$      endif
 !     end of loop over iteration:
       enddo
 
 
- 678  continue
+ 679  continue
 
 !     write over the spectral function:
       do i=0,nbin
@@ -2248,81 +2252,79 @@ contains
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !--------------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!$$$
-!$$$      subroutine get_mki(nbin,nbeta,nmeas,bin_energy,dbeta,gtau,
-!$$$     &     fe,wbar,mki)
-!$$$
-!$$$      implicit none
-!$$$
-!$$$      use fs_multi_par
-!$$$
-!$$$!     number of beta values, energy bins and measurements:
-!$$$      integer nbeta,nbin,nmeas(1:nbeta)
-!$$$!     the bin energies and the beta differences:
-!$$$      real*8 bin_energy(0:nbin),dbeta(1:nbeta)
-!$$$!     the probability distribution errors:
-!$$$      real*8 gtau(1:nbeta)
-!$$$
-!$$$!     the density of states:
-!$$$      real*8 wbar(0:nbin)
-!$$$!     the partition functions:
-!$$$      real*8 zbar(1:nbeta)
-!$$$
-!$$$!     the free energy values:
-!$$$      real*8 fe(1:nbeta)
-!$$$
-!$$$!     the curvature matrix:
-!$$$      real*8 mki(1:nbeta,1:nbeta)
-!$$$
-!$$$!     auxiliary variables:
-!$$$      integer i,j,k
-!$$$      real*8 aux,nom,denom,norm(0:nbin)
-!$$$ 
-!$$$!     calculate the curvature M_{ki}:
-!$$$!------------------------------------
-!$$$!     first get the partition functions for every beta value:
-!$$$      print *,'get the partition functions:'
-!$$$      call part_funct(nbin,nbeta,bin_energy,dbeta,wbar,zbar)
-!$$$
-!$$$!     precalculate sum_{k=1}^K n_k/g_k exp^{-beta_k*S+f_k}:
-!$$$!     loop over all the energy bins:
-!$$$!      print *,'sum_{k=1}^K n_k/g_k exp^{-beta_k*S+f_k}:'
-!$$$!      print *,'g=',g
-!$$$      do i=0,nbin
-!$$$         denom=0.
-!$$$         do k=1,nbeta
-!$$$!            print *,'i,j=',i,j
-!$$$            aux=exp(-dbeta(k)*bin_energy(i)+fe(k))
-!$$$            denom=denom+aux*nmeas(k)/gtau(k)
-!$$$         enddo
-!$$$         norm(i)=denom
-!$$$!         print *,'i,norm(i)=',i,norm(i)
-!$$$      enddo
-!$$$
-!$$$!     for every k calculate...
-!$$$      do k=1,nbeta
-!$$$!     ...the derivative with respect to f_i:
-!$$$         do i=1,nbeta
-!$$$!            print *,'k,i=',k,i
-!$$$!     loop over all the energy bins:
-!$$$            aux=0.
-!$$$            do j=0,nbin
-!$$$!               print *,'loop over energy bins, j=',j
-!$$$               nom=exp(-dbeta(i)*bin_energy(j)+fe(i))
-!$$$               nom=nom*nmeas(i)/gtau(i)
-!$$$               aux=aux+exp(-dbeta(k)*bin_energy(j))*
-!$$$     &              wbar(j)*nom/norm(j)
-!$$$            enddo
-!$$$            mki(k,i)=-aux/zbar(k)
-!$$$            if(i.eq.k) then
-!$$$               mki(k,i)=mki(k,i)+1.
-!$$$            endif
-!$$$         enddo
-!$$$      enddo
-!$$$
-!$$$      return
-!$$$      end
-!$$$
+!!$
+!!$      subroutine get_mki(nbin,nbeta,nmeas,bin_energy,dbeta,gtau,fe,wbar,mki)
+!!$
+!!$      use fs_multi_par
+!!$
+!!$      implicit none
+!!$
+!!$!     number of beta values, energy bins and measurements:
+!!$      integer nbeta,nbin,nmeas(1:nbeta)
+!!$!     the bin energies and the beta differences:
+!!$      real(kind=dp) :: bin_energy(0:nbin),dbeta(1:nbeta)
+!!$!     the probability distribution errors:
+!!$      real(kind=dp) :: gtau(1:nbeta)
+!!$
+!!$!     the density of states:
+!!$      real(kind=dp) :: wbar(0:nbin)
+!!$!     the partition functions:
+!!$      real(kind=dp) :: zbar(1:nbeta)
+!!$
+!!$!     the free energy values:
+!!$      real(kind=dp) :: fe(1:nbeta)
+!!$
+!!$!     the curvature matrix:
+!!$      real(kind=dp) :: mki(1:nbeta,1:nbeta)
+!!$
+!!$!     auxiliary variables:
+!!$      integer i,j,k
+!!$      real(kind=dp) :: aux,nom,denom,norm(0:nbin)
+!!$ 
+!!$!     calculate the curvature M_{ki}:
+!!$!------------------------------------
+!!$!     first get the partition functions for every beta value:
+!!$      print *,'get the partition functions:'
+!!$      call part_funct(nbin,nbeta,bin_energy,dbeta,wbar,zbar)
+!!$
+!!$!     precalculate sum_{k=1}^K n_k/g_k exp^{-beta_k*S+f_k}:
+!!$!     loop over all the energy bins:
+!!$!      print *,'sum_{k=1}^K n_k/g_k exp^{-beta_k*S+f_k}:'
+!!$!      print *,'g=',g
+!!$      do i=0,nbin
+!!$         denom=0.
+!!$         do k=1,nbeta
+!!$!            print *,'i,j=',i,j
+!!$            aux=exp(-dbeta(k)*bin_energy(i)+fe(k))
+!!$            denom=denom+aux*nmeas(k)/gtau(k)
+!!$         enddo
+!!$         norm(i)=denom
+!!$!         print *,'i,norm(i)=',i,norm(i)
+!!$      enddo
+!!$
+!!$!     for every k calculate...
+!!$      do k=1,nbeta
+!!$!     ...the derivative with respect to f_i:
+!!$         do i=1,nbeta
+!!$!            print *,'k,i=',k,i
+!!$!     loop over all the energy bins:
+!!$            aux=0.
+!!$            do j=0,nbin
+!!$!               print *,'loop over energy bins, j=',j
+!!$               nom=exp(-dbeta(i)*bin_energy(j)+fe(i))
+!!$               nom=nom*nmeas(i)/gtau(i)
+!!$               aux=aux+exp(-dbeta(k)*bin_energy(j))*wbar(j)*nom/norm(j)
+!!$            enddo
+!!$            mki(k,i)=-aux/zbar(k)
+!!$            if(i.eq.k) then
+!!$               mki(k,i)=mki(k,i)+1.
+!!$            endif
+!!$         enddo
+!!$      enddo
+!!$
+!!$      return
+!!$      end
+!!$
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !--------------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2341,20 +2343,20 @@ contains
       integer nbin,nbeta
 
 !     the density of states:
-      real*8 wbar(0:nbin)
+      real(kind=dp) :: wbar(0:nbin)
 
 !     the energy of the bins:
-      real*8 bin_energy(0:nbin)
+      real(kind=dp) :: bin_energy(0:nbin)
 !     the beta differences:
-      real*8 dbeta(1:nbeta)
+      real(kind=dp) :: dbeta(1:nbeta)
 
 !     the partition functions:
-      real*8 zbar(1:nbeta)
+      real(kind=dp) :: zbar(1:nbeta)
 
 
 !     auxiliary variables:
       integer i,k
-      real*8 aux
+      real(kind=dp) :: aux
 
 !     loop over the beta values:
       do k=1,nbeta
@@ -2392,18 +2394,18 @@ contains
       integer nmeas(0:nbeta)
 
 !     the autocorrelation times:
-      real*8 tau(1:nbeta)
+      real(kind=dp) :: tau(1:nbeta)
 
 !     the action and the observable:
-      real*8 energy(1:max_meas,1:nbeta),obs(1:max_meas,1:nbeta)
+      real(kind=dp) :: energy(1:max_meas,1:nbeta),obs(1:max_meas,1:nbeta)
 
 !     the autocorrelation functions:
-      real*8 acf(1:max_meas)
+      real(kind=dp) :: acf(1:max_meas)
 
 !     auxiliary variables:
       integer k,i,j
-      real*8 auxtau,vev,vev2,denom,cor,vev_i,vev_j,auxi,auxj
-      real*8 tauerr
+      real(kind=dp) :: auxtau,vev,vev2,denom,cor,vev_i,vev_j,auxi,auxj
+      real(kind=dp) :: tauerr
 
       integer max_j
 
@@ -2494,6 +2496,7 @@ contains
                exit
             endif
          enddo
+         tau(k)=auxtau
 
 
 !     end of loop over beta values:
@@ -2508,7 +2511,7 @@ contains
 
 
 !=================================================================
-      real*8 function ranf()
+      real(kind=dp) :: function ranf()
 !=================================================================
 !     for ranlux generator:
 
