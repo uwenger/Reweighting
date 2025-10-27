@@ -1,6 +1,6 @@
 !     ifort -r8 -o fs_multi fs_multi.f90 ranlxd_generator.f90 fs_multi_par.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag 
 !     18/09/2025: to get rid of the warnings:
-!     ifort -r8 -o fs_multi fs_multi.f ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic      
+!     ifort -r8 -o fs_multi fs_multi.f90 fs_multi_par.f90 ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic      
 
       program fs_multi
 
@@ -109,7 +109,8 @@
       read(55,*) quantity
       print *,'Quantity to calculate:',quantity
       if(quantity.eq.'R' .or. quantity.eq.'r') then
-         read(55,*) e0, nc
+         read(55,*) e0
+         read(55,*) nc
          print *,'E_0 for ratio of weights:',e0
          print *,'Number of deconfined phases:',nc
       endif
@@ -352,8 +353,8 @@
          if(nfail.ne.0) then
             print '("Attention: nfail=",i3)',nfail
          endif
-         print '(f12.7," +/- ",f12.7)',beta_max,btrp_err
-         print '(f12.7," +/- ",f12.7)',beta_corr,btrp_err
+         print '(f12.7," +/- ",f12.7," beta_c(S_max)")',beta_max,btrp_err
+         print '(f12.7," +/- ",f12.7,"              ")',beta_corr,btrp_err
          print *
 !     get the energy probability distributions for the new beta value:
          dbeta = beta_max-beta(0)
@@ -379,9 +380,9 @@
             
          print *,'Susceptibility maximum S_max and S_max/V:'
          print *,'***********************************************'
-         print '(f12.7," +/- ",f12.7," S_max")',obs(0),btrp_err
+         print '(f12.7," +/- ",f12.7," S_max(beta_c)")',obs(0),btrp_err
          vol=(float(lsize)/float(tsize))**3
-         print '(f12.7," +/- ",f12.7," S_max/V")',obs(0)/vol,btrp_err/vol
+         print '(f12.7," +/- ",f12.7," S_max_over_V")',obs(0)/vol,btrp_err/vol
          print *
       endif
       if(quantity.eq.'B' .or. quantity.eq.'b') then
@@ -417,8 +418,8 @@
          if(nfail.ne.0) then
             print '("Attention: nfail=",i3)',nfail
          endif
-         print '(f12.7," +/- ",f12.7)',beta_max,btrp_err
-         print '(f12.7," +/- ",f12.7)',beta_corr,btrp_err
+         print '(f12.7," +/- ",f12.7," beta_c(C_max)")',beta_max,btrp_err
+         print '(f12.7," +/- ",f12.7,"              ")',beta_corr,btrp_err
          print *
 !     get the energy probability distributions for the new beta value:
          dbeta = beta_max-beta(0)
@@ -538,7 +539,7 @@ contains
       implicit none
 
 !     bootstrap sample number:
-      integer nb
+      integer :: nb
 
 !     variables for the NAG-routine (in double precision):
       real(kind=dp) :: chi_max,chi_max_der,e1,e2,low,up,dbc,bound
@@ -549,16 +550,19 @@ contains
       real(kind=dp) :: beta_c(0:nbtrp)
 
 !     the critical beta and its error:
-      real(kind=dp) :: bc,err_bc
+      real(kind=dp), intent(out) :: bc,err_bc
 !     the bias corrected critical beta:
-      real(kind=dp) :: bc_corr
+      real(kind=dp), intent(out) :: bc_corr
       
 !     the beta values of the MC runs and the average beta_k(0):
-      real(kind=dp) :: beta(0:max_nbeta)
+      real(kind=dp), intent(in) :: beta(0:max_nbeta)
 
+      !     Number of fails to locate beta_c:
+      integer, intent(out) :: nfail
+      
 !     auxiliary variables:
       real(kind=dp) :: btrp_av,btrp_err
-      integer nfail,nbound
+      integer :: nbound
 
       nfail=0
       nbound=0
@@ -687,7 +691,8 @@ contains
 
       implicit none
 
-      real(kind=dp) :: dbeta,chi,chi_der
+      real(kind=dp), intent(in) :: dbeta
+      real(kind=dp), intent(out) :: chi,chi_der
 
       ! The following are globally defined:
       !------------------------------------
@@ -706,29 +711,29 @@ contains
 
 !     the energy for the ratio of weights:
       real(kind=dp) :: e0
-      integer nc
+      integer :: nc
 
 !     bootstrap sample number:
-      integer nb
+      integer :: nb
 
-!     the quantity to calculate:
-      character*1 quantity
+!!$!     the quantity to calculate:
+!!$      character*1 :: quantity
 
 !     the average beta value
       real(kind=dp) :: beta
 
 !     the lattice size:
-      integer lsize,tsize
+      integer :: lsize,tsize
 
 !     auxiliary variables:
-      integer i
+      integer :: i
       real(kind=dp) :: aux,L,L2,L2S,LS,S
 
 
       nb = ibtrp
 !     calculate the normalization factor Sum_S Wbar(S) exp(-dbeta*dS):
 !      print *,'Calculating the normalization:'
-      aux=0.
+      aux=0.0_dp
 !      print *,'nbin=',nbin
 !      print *,'dbeta=',dbeta
       do i=0,nbin
@@ -750,6 +755,7 @@ contains
       LS=0.
       L2S=0.
       S=0.
+!      print *,'Quantity=',quantity
 !     sum over the energy bins:
       if (quantity.eq.'H' .or. quantity.eq.'h') then
          do i=0,nbin
@@ -1027,7 +1033,6 @@ contains
       integer irvar,iseed
       real(kind=dp) :: rvar!,ranf
 
-      integer,parameter :: dp=selected_real_kind(14)
       real(kind=dp), dimension(1:1) :: r
 
 
@@ -1143,7 +1148,7 @@ contains
 !!$!     this is for the canonical data from Philippe, prepared with &
 !!$!     combine_data.f90:
 !!$            read(55,*,end=435) beta_read,act,obs,aux
-!!$            act=(1.-act)*lsize**3*tsize*6 
+!!$!            act=(1.-act)*lsize**3*tsize*6 
 !!$            if (Quantity.eq.'C' .or. quantity.eq.'c' .or. &
 !!$                quantity.eq.'H' .or. quantity.eq.'h') then
 !!$               obs = act/float(lsize**3*tsize) !energy per site
@@ -1156,10 +1161,15 @@ contains
 !!$            elseif(quantity.eq.'P' .or. quantity.eq.'p') then
 !!$               obs = aux
 !!$            endif
-!---------------------------------------------------
+!!$!---------------------------------------------------
 !     this is for Kieran's finite-T FP data:
-!            read(55,*,end=435) beta_read,act,aux,aux,obs
-            read(55,*,end=435) beta_read,act,obs,aux,aux
+            read(55,*,end=435) beta_read,act,aux,aux,obs
+            ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
+            ! we need to factor in 1/3.0:
+            act = act/3.0_dp 
+!            act = (1.0-act/(lsize**3*tsize*6.0))*lsize**3*tsize*6.0
+            !            print *,beta_read,act,aux,aux,obs
+!            read(55,*,end=435) beta_read,act,obs,aux,aux
             if (Quantity.eq.'C' .or. quantity.eq.'c' .or. &
                 quantity.eq.'H' .or. quantity.eq.'h') then
                obs = act/float(lsize**3*tsize) !energy per site
@@ -1172,7 +1182,7 @@ contains
             elseif(quantity.eq.'P' .or. quantity.eq.'p') then
                !obs = obs
             endif
-!---------------------------------------------------
+!!$!---------------------------------------------------
 
 
             if(abs(beta_read-beta(k)).lt.1.e-15) then
@@ -1348,7 +1358,7 @@ contains
          act=bin_energy(i)+act_av(0)
 !     divide by the bin width for comparison:         
 !         write(55,*) act, en_prob(i)/bin_width
-         write(55,'(10f15.5)') act,(en_prob(i,k,0)/float(nmeas(k)),k=1,nbeta)
+         write(55,'(10f15.5)') act/(lsize**3*tsize),(en_prob(i,k,0)/float(nmeas(k)),k=1,nbeta)
       enddo
       close(55)
 
@@ -1477,6 +1487,7 @@ contains
       enddo
       endif
       if(quantity.eq.'S' .or. quantity.eq.'s') then
+
       do k=1,nbeta
 !     calculate the bootstrap average:
          aux=0.
@@ -1703,7 +1714,7 @@ contains
 
 
 
-!      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
 
 
 !$$$      do i=0,nbin
@@ -2511,13 +2522,12 @@ contains
 
 
 !=================================================================
-      real(kind=dp) :: function ranf()
+      real(kind=dp) function ranf()
 !=================================================================
 !     for ranlux generator:
 
       use ranlxd_generator
 
-      integer,parameter :: dp=selected_real_kind(14)
       real(kind=dp), dimension(1:1) :: r
       
       call ranlxd(r)
