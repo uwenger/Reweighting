@@ -205,8 +205,8 @@
                beta_max=beta_pr
                chi_max=obs(0)
                beta_max=beta_max-beta(0)
-!     print *,'beta(0)=',beta(0)
-!     print *,'beta_max=',beta_max
+     print *,'DEBUG: beta(0)=',beta(0)
+     print *,'DEBUG: beta_max=',beta_max
             endif
          endif  
          if(quantity.eq.'B' .or. quantity.eq.'b') then
@@ -309,7 +309,6 @@
                beta_max=beta_pr-beta(0)
             endif
 
-
          endif
 
 !     and its bootstrap error:
@@ -330,6 +329,7 @@
 !         btrp_err=sqrt(btrp_err)
 
 !     write it out:
+!--------------------------------------------
          print *,beta_pr,obs(0),btrp_err
          if(ndbeta.eq.0) then
             write(47,*) beta_pr,obs(0),btrp_err
@@ -339,6 +339,9 @@
       enddo
       close(47)
 
+      write(*,'("Crude estimate of beta_c=",f15.6)') beta_max+beta(0)
+
+      
       if(quantity.eq.'S' .or. quantity.eq.'s') then
 !     get the location of the maximum of the susceptibility:
 !-----------------------------------------------------------
@@ -757,27 +760,53 @@ contains
       S=0.
 !      print *,'Quantity=',quantity
 !     sum over the energy bins:
+!!$      if (quantity.eq.'H' .or. quantity.eq.'h') then
+!!$         do i=0,nbin
+!!$            L=L+bin_energy(i)*new_en_prob(i,nb)
+!!$            L2=L2+bin_energy(i)**2*new_en_prob(i,nb)
+!!$            LS=LS+bin_energy(i)*bin_energy(i)*new_en_prob(i,nb)
+!!$            L2S=L2S+bin_energy(i)**3*new_en_prob(i,nb)
+!!$            S=S+bin_energy(i)*new_en_prob(i,nb)
+!!$         enddo
+!!$!     calculate the susceptibility:
+!!$         chi=-(L2-L**2)*(beta+dbeta)**2/float(tsize**2*lsize**3)
+!!$!     and its derivative:
+!!$!         chi_der=-(-L2S+L2*S-2*L*(L*S-LS))*(beta+dbeta)**2/
+!!$!     &        float(tsize**2*lsize**3)
+!!$!         chi_der=-((L2-L**2)*2*(beta+dbeta)+
+!!$!     &        (-L2S+2*L*LS)*(beta+dbeta)**2)/float(tsize**2*lsize**3)
+!!$         chi_der=2*chi*(S+1.0/(beta+dbeta))- &
+!!$             (L2*S-L2S)*(beta+dbeta)**2/float(tsize**2*lsize**3)
+!!$
+!!$
+!!$!      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
+!!$!     &       beta+dbeta,-chi,-chi_der
       if (quantity.eq.'H' .or. quantity.eq.'h') then
          do i=0,nbin
-            L=L+bin_energy(i)*new_en_prob(i,nb)
-            L2=L2+bin_energy(i)**2*new_en_prob(i,nb)
-            LS=LS+bin_energy(i)*bin_energy(i)*new_en_prob(i,nb)
-            L2S=L2S+bin_energy(i)**3*new_en_prob(i,nb)
+!!$            L=L+bin_energy(i)/float(tsize*lsize**3)*new_en_prob(i,nb)
+!!$            L2=L2+(bin_energy(i)/float(tsize*lsize**3))**2*new_en_prob(i,nb)
+!!$            LS=LS+bin_energy(i)/float(tsize*lsize**3)*bin_energy(i)/float(tsize*lsize**3)*new_en_prob(i,nb)
+!!$            L2S=L2S+(bin_energy(i)/float(tsize*lsize**3))**3*new_en_prob(i,nb)
+
+            L=L+eff_obs(i,nb)*new_en_prob(i,nb)
+            L2=L2+eff_obs2(i,nb)*new_en_prob(i,nb)
+            LS=LS+eff_obs(i,nb)*bin_energy(i)*new_en_prob(i,nb)
+            L2S=L2S+eff_obs2(i,nb)*bin_energy(i)*new_en_prob(i,nb)
+
             S=S+bin_energy(i)*new_en_prob(i,nb)
          enddo
 !     calculate the susceptibility:
-         chi=-(L2-L**2)*(beta+dbeta)**2/float(tsize**2*lsize**3)
+         chi=-(L2-L**2)*(beta+dbeta)**2*lsize**3
 !     and its derivative:
 !         chi_der=-(-L2S+L2*S-2*L*(L*S-LS))*(beta+dbeta)**2/
 !     &        float(tsize**2*lsize**3)
 !         chi_der=-((L2-L**2)*2*(beta+dbeta)+
 !     &        (-L2S+2*L*LS)*(beta+dbeta)**2)/float(tsize**2*lsize**3)
-         chi_der=2*chi*(S+1.0/(beta+dbeta))- &
-             (L2*S-L2S)*(beta+dbeta)**2/float(tsize**2*lsize**3)
+         chi_der=(2*chi*(S+1.0/(beta+dbeta))- &
+             (L2*S-L2S)*(beta+dbeta)**2*float(lsize**3))
 
 
-!      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
-!     &       beta+dbeta,-chi,-chi_der
+         if(nb==0) print '("beta,chi,chi_der=",3e20.10,a4)', beta+dbeta,-chi,-chi_der,lsize
       elseif (quantity.eq.'B' .or. quantity.eq.'b') then
          do i=0,nbin
             aux = (bin_energy(i)+act_av(0))/float(tsize*lsize**3)
@@ -808,7 +837,7 @@ contains
 !$$$         chi_der=-2.*(log(L/S) - log(4.))*lsize**3*(L2/L - L2S/S)
          chi=(log(L/S) - log(float(nc)))**2
          chi_der=-2.*(log(L/S) - log(float(nc)))*lsize**3*(L2/L - L2S/S)
-      else
+      else  ! Polyakov loop susceptibility 'S'
          do i=0,nbin
             L=L+eff_obs(i,nb)*new_en_prob(i,nb)
             L2=L2+eff_obs2(i,nb)*new_en_prob(i,nb)
@@ -821,7 +850,9 @@ contains
 !     and its derivative:
          chi_der=-(-L2S+L2*S-2*L*(L*S-LS))
 !      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
-!     &       beta+dbeta,-lsize**3*chi,-chi_der
+         !     &       beta+dbeta,-lsize**3*chi,-chi_der
+         if(nb==0) print '("beta,chi,chi_der=",3e20.10,a4)', beta+dbeta,-chi,-chi_der,lsize
+
       endif
 
 !      print *,'DEBUG in subroutine chi_beta: nb=', nb, dbeta, chi, chi_der
