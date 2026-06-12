@@ -137,7 +137,7 @@
          print *,'beta     Chi(beta)    bootstrap error'
       elseif(quantity.eq.'C' .or. quantity.eq.'c') then
          print *
-         print *,'The specific heat C = beta^2 V (<e^2> - <e>^2):'
+         print *,'The specific heat C = beta^2 V (<e^2> - <e>^2) with V=L^3 Lt:'
          print *,'beta     C(beta)    bootstrap error'
       elseif(quantity.eq.'B' .or. quantity.eq.'b') then
          print *
@@ -154,7 +154,7 @@
          print *,'beta     e(beta)    bootstrap error'
       elseif(quantity.eq.'H' .or. quantity.eq.'h') then
          print *
-         print *,'The specific heat H = beta^2 V (<e^2> - <e>^2):'
+         print *,'The specific heat H = beta^2 V (<e^2> - <e>^2) with V=L^3 Lt:'
          print *,'beta     H(beta)    bootstrap error'
       endif
 
@@ -196,9 +196,9 @@
          endif  
          if(quantity.eq.'C' .or. quantity.eq.'c') then
 !     calculate the specific heat
-!     C=beta^2 lsize^3 (<e^2> - <e>^2):
+!     C=beta^2 lsize^3 tsize (<e^2> - <e>^2):
             do j=0,nbtrp
-               obs(j)=beta_pr**2*lsize**3*(obs2(j)-obs(j)**2)
+               obs(j)=beta_pr**2*lsize**3*tsize*(obs2(j)-obs(j)**2)
             enddo
 !     find a crude approximation of the max. of the specific heat:
             if(obs(0).gt.chi_max) then
@@ -299,7 +299,7 @@
                enddo
 !                obs(j)=lsize**3*(beta_max-chi_max**2)*beta_pr**2
 !                obs(j)=beta_pr**2*(beta_max-chi_max**2)*tsize/float(6)
-                obs(j)=beta_pr**2*(aux2-aux**2)*lsize**3
+                obs(j)=beta_pr**2*(aux2-aux**2)*lsize**3*tsize
 !               obs(j)=(beta_max-chi_max**2)*beta_pr**2/
 !     &              float(tsize**2*lsize**3)
             enddo
@@ -422,7 +422,7 @@
             print '("Attention: nfail=",i3)',nfail
          endif
          print '(f12.7," +/- ",f12.7," beta_c(C_max)")',beta_max,btrp_err
-         print '(f12.7," +/- ",f12.7,"              ")',beta_corr,btrp_err
+         print '(f12.7," +/- ",f12.7," bias corrected")',beta_corr,btrp_err
          print *
 !     get the energy probability distributions for the new beta value:
          dbeta = beta_max-beta(0)
@@ -441,7 +441,7 @@
                       ((bin_energy(k))/ &
                       float(tsize*lsize**3))**2
                enddo
-               obs(j)=beta_max**2*(aux2-aux**2)*lsize**3
+               obs(j)=beta_max**2*(aux2-aux**2)*lsize**3*tsize
             enddo
             btrp_av=0.
             do j=1,nbtrp
@@ -461,7 +461,31 @@
          vol=(float(lsize)/float(tsize))**3
          print '(f12.7," +/- ",f12.7," C_max/V")',obs(0)/vol,btrp_err/vol
          print *
-       endif
+
+         ! C_max/(beta**2*L**3*Lt) = L->oo => 1/4 (<s_c> - <s_d>)^2 = 1/4 L_h^2
+         print *,'beta_max=',beta_max
+         do j=0,nbtrp
+            obs(j)=4.0*obs(j)/(beta_max**2*lsize**3*tsize)
+            obs(j)=sqrt(obs(j))
+         enddo
+         btrp_av=0.
+         do j=1,nbtrp
+            btrp_av=btrp_av+obs(j)
+         enddo
+         btrp_av=btrp_av/float(nbtrp) !bootstrap average
+         btrp_err=0.
+         do j=1,nbtrp
+            btrp_err=btrp_err+(obs(j)-btrp_av)**2
+         enddo
+         btrp_err=sqrt(btrp_err/float(nbtrp-1))
+            
+         print *,'Latent heat (from C_max):'
+         print *,'***********************************************'
+         print '(f12.7," +/- ",f12.7," L_h")',obs(0),btrp_err
+         print '(f12.7," +/- ",f12.7," L_h/Tc^4")',tsize**4*obs(0),tsize**4*btrp_err
+         
+ 
+      endif
       if(quantity.eq.'R' .or. quantity.eq.'r') then
 !     get the location of the crossing of the ratio with the number of phases:
 !-----------------------------------------------------------
@@ -722,11 +746,11 @@ contains
 !!$!     the quantity to calculate:
 !!$      character*1 :: quantity
 
-!     the average beta value
-      real(kind=dp) :: beta
+!!$!     the average beta value
+!!$      real(kind=dp) :: beta
 
-!     the lattice size:
-      integer :: lsize,tsize
+!!$!     the lattice size:
+!!$      integer :: lsize,tsize
 
 !     auxiliary variables:
       integer :: i
@@ -781,33 +805,33 @@ contains
 !!$
 !!$!      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
 !!$!     &       beta+dbeta,-chi,-chi_der
-      if (quantity.eq.'H' .or. quantity.eq.'h') then
+      if (quantity.eq.'H' .or. quantity.eq.'h' .or. quantity.eq.'C' .or. quantity.eq.'c') then
+      !==================================================
          do i=0,nbin
-!!$            L=L+bin_energy(i)/float(tsize*lsize**3)*new_en_prob(i,nb)
-!!$            L2=L2+(bin_energy(i)/float(tsize*lsize**3))**2*new_en_prob(i,nb)
-!!$            LS=LS+bin_energy(i)/float(tsize*lsize**3)*bin_energy(i)/float(tsize*lsize**3)*new_en_prob(i,nb)
-!!$            L2S=L2S+(bin_energy(i)/float(tsize*lsize**3))**3*new_en_prob(i,nb)
-
-            L=L+eff_obs(i,nb)*new_en_prob(i,nb)
-            L2=L2+eff_obs2(i,nb)*new_en_prob(i,nb)
-            LS=LS+eff_obs(i,nb)*bin_energy(i)*new_en_prob(i,nb)
-            L2S=L2S+eff_obs2(i,nb)*bin_energy(i)*new_en_prob(i,nb)
-
-            S=S+bin_energy(i)*new_en_prob(i,nb)
+            L=L+bin_energy(i)/float(tsize*lsize**3)*new_en_prob(i,nb)                        ! <s>
+            L2=L2+(bin_energy(i)/float(tsize*lsize**3))**2*new_en_prob(i,nb)                 ! <s^2>
+            LS=LS+bin_energy(i)/float(tsize*lsize**3)*bin_energy(i)*new_en_prob(i,nb)        ! <s S>
+            L2S=L2S+(bin_energy(i)/float(tsize*lsize**3))**2*bin_energy(i)*new_en_prob(i,nb) ! <s^2 S>
+            S=S+bin_energy(i)*new_en_prob(i,nb)                                              ! <S>
          enddo
 !     calculate the susceptibility:
-         chi=-(L2-L**2)*(beta+dbeta)**2*lsize**3
+         chi = (L2-L**2)*(beta(0)+dbeta)**2*lsize**3*tsize  
 !     and its derivative:
-!         chi_der=-(-L2S+L2*S-2*L*(L*S-LS))*(beta+dbeta)**2/
-!     &        float(tsize**2*lsize**3)
-!         chi_der=-((L2-L**2)*2*(beta+dbeta)+
-!     &        (-L2S+2*L*LS)*(beta+dbeta)**2)/float(tsize**2*lsize**3)
-         chi_der=(2*chi*(S+1.0/(beta+dbeta))- &
-             (L2*S-L2S)*(beta+dbeta)**2*float(lsize**3))
+!         chi_der=-(-L2S+L2*S-2*L*(L*S-LS))*(beta(0)+dbeta)**2* &
+!             float(tsize*lsize**3)
+!         chi_der=-((L2-L**2)*2*(beta(0)+dbeta)+ &
+!              (-L2S+2*L*LS)*(beta(0)+dbeta)**2)*float(tsize*lsize**3)
+         chi_der= chi*(S+2.0/(beta(0)+dbeta)) - (beta(0)+dbeta)**2*float(lsize**3)*tsize * &
+              (L2S - 2.0*L*LS + L**2*S) 
+!!$         chi_der=  chi*2.0/(beta(0)+dbeta) + (beta(0)+dbeta)**2*float(lsize**3)*tsize * &
+!!$              (L2*S - L2S - 2.0*(L**2*S-L*LS)) 
 
-
-         if(nb==0) print '("beta,chi,chi_der=",3e20.10,a4)', beta+dbeta,-chi,-chi_der,lsize
+         if(nb==0) print '("beta,chi,chi_der=",3e20.10,2i4)', beta(0)+dbeta,chi,chi_der,lsize,tsize
+         ! minus sign because we need to turn the maximum into a minimum
+         chi = - chi
+         chi_der = -chi_der
       elseif (quantity.eq.'B' .or. quantity.eq.'b') then
+      !==================================================
          do i=0,nbin
             aux = (bin_energy(i)+act_av(0))/float(tsize*lsize**3)
             L=L+aux*new_en_prob(i,nb)
@@ -823,6 +847,7 @@ contains
 !      print *,'dbeta,chi,chi_der=',dbeta,chi,chi_der
 
       elseif(quantity.eq.'R' .or. quantity.eq.'r') then
+      !==================================================
          do i=0,nbin
             LS=(bin_energy(i)+act_av(0))/lsize**3
             if(LS.lt.e0) then
@@ -838,6 +863,7 @@ contains
          chi=(log(L/S) - log(float(nc)))**2
          chi_der=-2.*(log(L/S) - log(float(nc)))*lsize**3*(L2/L - L2S/S)
       else  ! Polyakov loop susceptibility 'S'
+      !==================================================
          do i=0,nbin
             L=L+eff_obs(i,nb)*new_en_prob(i,nb)
             L2=L2+eff_obs2(i,nb)*new_en_prob(i,nb)
@@ -851,7 +877,8 @@ contains
          chi_der=-(-L2S+L2*S-2*L*(L*S-LS))
 !      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
          !     &       beta+dbeta,-lsize**3*chi,-chi_der
-         if(nb==0) print '("beta,chi,chi_der=",3e20.10,a4)', beta+dbeta,-chi,-chi_der,lsize
+         print *,'nb=',nb
+         if(nb==0) print '("beta,chi,chi_der=",4e20.10,i4)', beta(0),beta(0)+dbeta,-chi,-chi_der,lsize
 
       endif
 
@@ -1268,8 +1295,8 @@ contains
       print '("Average of the observable^2:",f15.6)',av_obs2(k,0)
       if(quantity.eq.'S' .or. quantity.eq.'s') then
          print '("Susceptibility:",f15.6)',lsize**3*(av_obs2(k,0)-av_obs(k,0)**2)
-      elseif(quantity.eq.'C' .or. quantity.eq.'c') then
-         print '("Specific heat:",f15.6)',beta(k)**2*lsize**3*(av_obs2(k,0)-av_obs(k,0)**2)
+      elseif(quantity.eq.'C' .or. quantity.eq.'c' .or. quantity.eq.'H' .or. quantity.eq.'h' ) then
+         print '("Specific heat:",f15.6)',beta(k)**2*lsize**3*tsize*(av_obs2(k,0)-av_obs(k,0)**2)
       elseif(quantity.eq.'B' .or. quantity.eq.'b') then
          print '("Binder cumulant:",f15.6)',lsize**3*(av_obs2(k,0)/(av_obs(k,0)**2)-1.)
       elseif(quantity.eq.'R' .or. quantity.eq.'r') then
@@ -1309,7 +1336,7 @@ contains
          print *,'nbin, max_nbin=',nbin, max_nbin
          stop
       endif
-      print '("Number of bins:",i5)',nbin
+      print '("Number of energy bins:",i5)',nbin
 !     generate table:    bin number <-> energy
       act=min_act(0)-bin_width/2.
       do i=0,nbin
@@ -1543,19 +1570,19 @@ contains
 !     calculate the bootstrap average:
          aux=0.
          do nb=1,nbtrp
-            aux=aux+beta(k)**2*lsize**3*(av_obs2(k,nb)-av_obs(k,nb)**2)
+            aux=aux+beta(k)**2*lsize**3*tsize*(av_obs2(k,nb)-av_obs(k,nb)**2)
          enddo
          aux=aux/float(nbtrp)
 !     calculate the error:
          norm=0.
          do nb=1,nbtrp
             norm=norm+ &
-                (beta(k)**2*lsize**3*(av_obs2(k,nb)-av_obs(k,nb)**2)-aux)**2
+                (beta(k)**2*lsize**3*tsize*(av_obs2(k,nb)-av_obs(k,nb)**2)-aux)**2
          enddo
          norm=norm/float(nbtrp-1)
          norm=sqrt(norm)
 !     and write it out:
-         write(56,*) beta(k),beta(k)**2*lsize**3*(av_obs2(k,0)-av_obs(k,0)**2),norm
+         write(56,*) beta(k),beta(k)**2*lsize**3*tsize*(av_obs2(k,0)-av_obs(k,0)**2),norm
       enddo
       endif
       if(quantity.eq.'B' .or. quantity.eq.'b') then
