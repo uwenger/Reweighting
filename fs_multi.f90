@@ -1,6 +1,9 @@
 !     ifort -r8 -o fs_multi fs_multi.f90 ranlxd_generator.f90 fs_multi_par.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag 
 !     18/09/2025: to get rid of the warnings:
-!     ifort -r8 -o fs_multi fs_multi.f90 fs_multi_par.f90 ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic      
+!     ifort -r8 -o fs_multi fs_multi.f90 fs_multi_par.f90 ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic
+!     15/06/2026: with nbeta > 9 there is a segmentation fault due to the stacksize hard limit of 63MB on macOS. To overcome use -heap-arrays to automatically push all automatic and temporary arrays onto the heap instead of stack:
+!     ifort -r8 -o fs_multi fs_multi.f90 fs_multi_par.f90 ranlxd_generator.f90 -L ~/Libraries/NAG_Mark19/nag/fldau19da/ -lnag -Wl,-ld_classic  -heap-arrays
+
 
       program fs_multi
 
@@ -877,7 +880,7 @@ contains
          chi_der=-(-L2S+L2*S-2*L*(L*S-LS))
 !      if(nb==0) print '("dbeta,chi,chi_der=",3e20.10)',
          !     &       beta+dbeta,-lsize**3*chi,-chi_der
-         print *,'nb=',nb
+!         print *,'nb=',nb
          if(nb==0) print '("beta,chi,chi_der=",4e20.10,i4)', beta(0),beta(0)+dbeta,-chi,-chi_der,lsize
 
       endif
@@ -1221,7 +1224,9 @@ contains
 !!$            endif
 !!$!---------------------------------------------------
 !     this is for Kieran's finite-T FP data:
-            read(55,*,end=435) beta_read,act,aux,aux,obs
+!            read(55,*,end=435) beta_read,act,aux,aux,obs
+            ! Version for data after 15 June 2026:
+            read(55,*,end=435) beta_read,act,obs,aux,aux
             ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
             ! we need to factor in 1/3.0:
             act = act/3.0_dp 
