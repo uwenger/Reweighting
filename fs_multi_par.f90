@@ -10,7 +10,7 @@ module fs_multi_par
 
 !     bootstrap sample size:
       integer :: blocksize
-      parameter(blocksize=10)
+      parameter(blocksize=100)
 
 !     maximal number of measurements:
       integer :: max_meas
@@ -18,7 +18,7 @@ module fs_multi_par
 
 !     maximal number of beta values:
       integer :: max_nbeta
-      parameter(max_nbeta=10)
+      parameter(max_nbeta=20)
 
 !     double precision
       integer,parameter :: dp=selected_real_kind(14)
