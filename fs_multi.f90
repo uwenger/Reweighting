@@ -21,6 +21,13 @@
 !     the bin energies and the beta value:
       real(kind=dp) :: bin_energy(0:max_nbin),beta_pr
 
+      ! the values of the obsrvable bins and the probablilites:
+      real(kind=dp) :: obsbin_val(0:60),obs_prob(0:60,max_nbeta)
+
+      !     for the observable probability distribution:
+      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+
+      
 !     the spectral density:
       real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
 
@@ -341,13 +348,14 @@
          endif
       enddo
       close(47)
-
-      write(*,'("Crude estimate of beta_c=",f15.6)') beta_max+beta(0)
-
+      if (.not.(quantity.eq.'L' .or. quantity.eq.'l')) then
+         write(*,'("Crude estimate of beta_c=",f15.6)') beta_max+beta(0)
+      endif
       
       if(quantity.eq.'S' .or. quantity.eq.'s') then
 !     get the location of the maximum of the susceptibility:
-!-----------------------------------------------------------
+         !-----------------------------------------------------------
+         vol=(float(lsize)/float(tsize))**3
          call get_betac(beta_max,btrp_err,beta_corr,beta,nfail)
 !     for correlated data multiply the error by 2 tau due 
 !     to autocorrelation:
@@ -359,8 +367,8 @@
          if(nfail.ne.0) then
             print '("Attention: nfail=",i3)',nfail
          endif
-         print '(f12.7," +/- ",f12.7," beta_c(S_max)")',beta_max,btrp_err
-         print '(f12.7," +/- ",f12.7,"              ")',beta_corr,btrp_err
+         print '(2f12.7," +/- ",f12.7," beta_c(S_max)")',1.0_dp/vol,beta_max,btrp_err
+         print '(2f12.7," +/- ",f12.7,"              ")',1.0_dp/vol,beta_corr,btrp_err
          print *
 !     get the energy probability distributions for the new beta value:
          dbeta = beta_max-beta(0)
@@ -383,13 +391,16 @@
             enddo
             btrp_err=sqrt(btrp_err/float(nbtrp-1))
             
-            
+
          print *,'Susceptibility maximum S_max and S_max/V:'
          print *,'***********************************************'
-         print '(f12.7," +/- ",f12.7," S_max(beta_c)")',obs(0),btrp_err
-         vol=(float(lsize)/float(tsize))**3
-         print '(f12.7," +/- ",f12.7," S_max_over_V")',obs(0)/vol,btrp_err/vol
+         print '(2f12.7," +/- ",f12.7," S_max(beta_c)")',1.0_dp/vol,obs(0),btrp_err
+         
+         print '(2f12.7," +/- ",f12.7," S_max_over_V")',1.0_dp/vol,obs(0)/vol,btrp_err/vol
          print *
+         ! Calculate the surface tension:
+         call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+         
       endif
       if(quantity.eq.'B' .or. quantity.eq.'b') then
 !     get the location of the maximum of the susceptibility:
@@ -410,7 +421,8 @@
          print *
       endif
       if(quantity.eq.'C' .or. quantity.eq.'c' .or. quantity.eq.'H' &
-          .or. quantity.eq.'h') then
+           .or. quantity.eq.'h') then
+         vol=(float(lsize)/float(tsize))**3
 !     get the location of the maximum of the susceptibility:
 !-----------------------------------------------------------
          call get_betac(beta_max,btrp_err,beta_corr,beta,nfail)
@@ -424,8 +436,8 @@
          if(nfail.ne.0) then
             print '("Attention: nfail=",i3)',nfail
          endif
-         print '(f12.7," +/- ",f12.7," beta_c(C_max)")',beta_max,btrp_err
-         print '(f12.7," +/- ",f12.7," bias corrected")',beta_corr,btrp_err
+         print '(2f12.7," +/- ",f12.7," beta_c(C_max)")',1.0_dp/vol,beta_max,btrp_err
+         print '(2f12.7," +/- ",f12.7," bias corrected")',1.0_dp/vol,beta_corr,btrp_err
          print *
 !     get the energy probability distributions for the new beta value:
          dbeta = beta_max-beta(0)
@@ -458,11 +470,11 @@
             btrp_err=sqrt(btrp_err/float(nbtrp-1))
             
             
-         print *,'Specific heat maximum C_max and C_max/V:'
+         print *,'Specific heat maximum C_max and C_max / V:'
          print *,'***********************************************'
-         print '(f12.7," +/- ",f12.7," C_max")',obs(0),btrp_err
+         print '(2f12.7," +/- ",f12.7," C_max")',1.0_dp/vol,obs(0),btrp_err
          vol=(float(lsize)/float(tsize))**3
-         print '(f12.7," +/- ",f12.7," C_max/V")',obs(0)/vol,btrp_err/vol
+         print '(2f12.7," +/- ",f12.7," C_max/V")',1.0_dp/vol,obs(0)/vol,btrp_err/vol
          print *
 
          ! C_max/(beta**2*L**3*Lt) = L->oo => 1/4 (<s_c> - <s_d>)^2 = 1/4 L_h^2
@@ -484,8 +496,8 @@
             
          print *,'Latent heat (from C_max):'
          print *,'***********************************************'
-         print '(f12.7," +/- ",f12.7," L_h")',obs(0),btrp_err
-         print '(f12.7," +/- ",f12.7," L_h/Tc^4")',tsize**4*obs(0),tsize**4*btrp_err
+         print '(2f12.7," +/- ",f12.7," L_h")',1.0_dp/vol,obs(0),btrp_err
+         print '(2f12.7," +/- ",f12.7," L_h/Tc^4")',1.0_dp/vol,tsize**4*obs(0),tsize**4*btrp_err
          
  
       endif
@@ -1076,10 +1088,10 @@ contains
 
 !     for binning the observable:
       integer obsbin_number
-      real(kind=dp) :: obsbin_width,obs_prob(0:60,max_nbeta),obsbin_val(0:60),min_obs,max_obs
+      real(kind=dp) :: obsbin_width,obs_prob(0:60,max_nbeta),min_obs,max_obs!   ,obsbin_val(0:60)
 
-!     for the observable probability distribution:
-      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+!!$!     for the observable probability distribution:
+!!$      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
 
 
 !     the spatial and temporal lattice size:
@@ -1163,10 +1175,10 @@ contains
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
-!            read(55,*,end=435) beta_read,act,aux,aux,obs
+            read(55,*,end=435) beta_read,act,aux,aux,obs
 !---------------------------------------------------
 !     this is for the APE action:
-!            act=act/3. !divide the action by xi*nc
+            act=act/3._dp !divide the action by xi*nc
 !$$$!---------------------------------------------------
 !$$$!     this is for the Manton action (Philippe's version):
 !$$$            read(55,*,end=435) beta_read,act,aux,obs
@@ -1223,13 +1235,14 @@ contains
 !!$               obs = aux
 !!$            endif
 !!$!---------------------------------------------------
-!     this is for Kieran's finite-T FP data:
-!            read(55,*,end=435) beta_read,act,aux,aux,obs
-            ! Version for data after 15 June 2026:
-            read(55,*,end=435) beta_read,act,obs,aux,aux
-            ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
-            ! we need to factor in 1/3.0:
-            act = act/3.0_dp 
+!!$!     this is for Kieran's finite-T FP data:
+!!$!            read(55,*,end=435) beta_read,act,aux,aux,obs
+!!$            ! Version for data after 15 June 2026:
+!!$            read(55,*,end=435) beta_read,act,obs,aux,aux
+!!$            ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
+!!$            ! we need to factor in 1/3.0:
+!!$            act = act/3.0_dp
+!------------------------------------------------------
 !            act = (1.0-act/(lsize**3*tsize*6.0))*lsize**3*tsize*6.0
             !            print *,beta_read,act,aux,aux,obs
 !            read(55,*,end=435) beta_read,act,obs,aux,aux
@@ -1777,7 +1790,7 @@ contains
 
 
 
-      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+!!$      call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
 
 
 !$$$      do i=0,nbin
@@ -1810,13 +1823,13 @@ contains
       implicit none
 
 !     the spectral densities:
-      real(kind=dp) :: en_dens(0:max_nbin,0:nbtrp)
+      real(kind=dp), intent(in) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     for the observable probability distribution:
-      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+      real(kind=dp), intent(in) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
 
 !     the bin values of the observable:
-      real(kind=dp) :: obsbin_val(0:60)
+      real(kind=dp), intent(in) :: obsbin_val(0:60)
 
 !     number of energy bins:
       integer nbin
@@ -1833,7 +1846,7 @@ contains
 
 !     auxiliaries:
       integer nb,i,j
-      real(kind=dp) :: norm,aux,err,fact,add
+      real(kind=dp) :: norm,aux,err,fact,add,aux0
 
 !     loop over bootstrap samples:
       do nb=0,nbtrp
@@ -1956,10 +1969,21 @@ contains
       print '(" p_min =",f12.7," +/- ",f12.7)',paux(i,0),err
 
 
+      ! The correct expression should be (cf. Lucini et al., arXiv:0502003):
+      !    \hat \sigma = -1/2 Lt^2/Ls^2 { \ln p_min/p_max - 1/2 \ln Ls - c}
+      ! where \hat \sigma = \sigma /T_c^3 is dimensionless.
+      ! We define
+      !    \hat \Sigma = -1/2 Lt^2/Ls^2 \ln p_min/p_max + 1/2 Lt^2/Ls^2 1/2 \ln Ls
+      ! which has the correct thermodynamic limit
+      !    \hat \Sigma -(Lt/Ls -> oo)-> \hat \sigma
+      ! and FV corrections \propto Lt^2/L_s^2:
+      !---------------------------------------------------------------------------
       fact=0.5*(float(tsize)/float(lsize))**2
       add=0.5*fact*log(float(lsize))
 !     now calculate the surface tension from these fixed locations:
       open(52,file='surface_tension.plo',form='formatted',status='unknown')
+      ! use the first maximum:
+      !-----------------------
       j=imin(0)
       i=imax1(0)
       aux=0.
@@ -1973,8 +1997,11 @@ contains
       enddo
       err=err/float(nbtrp-1)
       err=sqrt(err)
-      write(52,'(2i8,3f12.7)') i,j,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
-
+      print '("ibin_min=",i8,", ibin_max1=",i8,", \hat \Sigma = ",f12.7," +\- ",f12.7,", (bias corr. =",f12.7,")")', &
+           j,i,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
+      write(52,'(2i8,3f12.7)') j,i,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
+      ! use the second maximum:
+      !------------------------
       j=imin(0)
       i=imax2(0)
       do nb=1,nbtrp
@@ -1987,8 +2014,12 @@ contains
       enddo
       err=err/float(nbtrp-1)
       err=sqrt(err)
-      write(52,'(2i8,3f12.7)') i,j,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
+      print '("ibin_min=",i8,", ibin_max2=",i8,", \hat \Sigma = ",f12.7," +\- ",f12.7,", (bias corr. =",f12.7,")")', &
+           j,i,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
+      write(52,'(2i8,3f12.7)') j,i,-fact*log(paux(j,0)/paux(i,0))+add,fact*err,-fact*aux+add
 
+      ! use the average of the two maxima:
+      !-----------------------------------
 !$$$      j=imin(0)
 !$$$      i=imax2(0)
 !$$$      do nb=1,nbtrp
@@ -2004,8 +2035,12 @@ contains
 !$$$      err=sqrt(err)
 !$$$      norm = log(2.*paux(j,0)/(paux(i,0)+paux(imax1(0),0)))
 !$$$      write(52,'(2i4,i8,3f12.7)') imax1(0),i,j,norm,err,aux
+      ! use the geometric mean of the two maxima:
+      !------------------------------------------
       j=imin(0)
       i=imax2(0)
+      nb=0
+      aux0 = log(paux(j,nb)/(paux(i,nb)**0.5*paux(imax1(0),nb)**0.5))
       do nb=1,nbtrp
          aux=aux+log(paux(j,nb)/(paux(i,nb)**0.5*paux(imax1(0),nb)**0.5))
       enddo
@@ -2020,11 +2055,16 @@ contains
       norm = log(paux(j,0)/(paux(i,0)**0.5*paux(imax1(0),0)**0.5))
       norm = -fact*norm+add
       err = fact*err
-      write(52,'(2i4,i8,3f12.7)') imax1(0),i,j,norm,err,-fact*aux+add
+      print '("ibin_min=",i8,", ibin_max2=",i8,", \hat \Sigma = ",f12.7," +\- ",f12.7,", (bias corr. =",f12.7,")")', &
+           j,i,-fact*aux0+add,err,-fact*aux+add
+      
+      write(52,'(2i8,3f12.7)') j,i,-fact*aux0+add,fact*err,-fact*aux+add
+!      write(52,'(2i4,i8,3f12.7)') imax1(0),i,j,norm,err,-fact*aux+add
 
-!     Print out the surface tension:
+      !     Print out the surface tension:
+      !-----------------------------------
       print *
-      print '(" sigma/T_c^3 = ",2f12.7)',norm,err
+      print '(" sigma/T_c^3 = ",3f12.7)',(float(tsize)/float(lsize))**3,norm,err
       print *
 
 
@@ -2068,7 +2108,7 @@ contains
       enddo
       err=err/float(nbtrp-1)
       err=sqrt(err)
-      write(52,'(2i8,3f12.7)') imax1(0),imin(0),&
+      write(52,'(2i8,3f12.7)') imin(0),imax1(0),&
           -fact*log(paux(imin(0),0)/paux(imax1(0),0))+add,fact*err,-fact*aux+add
 
 
@@ -2085,7 +2125,7 @@ contains
       enddo
       err=err/float(nbtrp-1)
       err=sqrt(err)
-      write(52,'(2i8,3f12.7)') imax2(0),imin(0),&
+      write(52,'(2i8,3f12.7)') imin(0),imax2(0),&
           -fact*log(paux(imin(0),0)/paux(imax2(0),0))+add,fact*err,-fact*aux+add
 
 
