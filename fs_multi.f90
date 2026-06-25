@@ -1856,7 +1856,8 @@ contains
             aux=0.
 !     loop over energies:
             do j=0,nbin
-               aux=aux+obs_en_prob(i,j,0)*en_dens(j,nb)
+!               aux=aux+obs_en_prob(i,j,0)*en_dens(j,nb)
+               aux=aux+obs_en_prob(i,j,0)*new_en_prob(j,nb)
             enddo
             paux(i,nb)=aux
             norm=norm+aux
@@ -1867,6 +1868,13 @@ contains
          enddo
       enddo
 
+      nb=0
+      print *,'nb=0: en_dens(j,nb),new_en_prob(j,nb)'
+      do j=0,nbin
+         print *,en_dens(j,nb),new_en_prob(j,nb)
+      enddo
+      
+      
 !     open file for writing results: 
       open(54,file='obs_btrp_distr.plo',form='formatted', status='unknown')
 
@@ -1888,7 +1896,7 @@ contains
          err=err/float(nbtrp-1)
          err=sqrt(err)
 !     print it out:
-         write(54,'(3f10.5)') obsbin_val(i),paux(i,0),err
+         write(54,'(3f15.10)') obsbin_val(i),paux(i,0),err
       enddo
 
       close(54)
@@ -1903,24 +1911,24 @@ contains
       pmax2=0.
       pmin=1.
       !      do i=1,15
-      do i=1,obs_nbin/2
+      do i=1,obs_nbin/3
          if(paux(i,nb) .ge. pmax1) then
             pmax1=paux(i,nb)
             imax1(nb)=i
-         endif
-      enddo
-!      do i=10,35
-!      do i=15,25
-      do i=obs_nbin/4,3*obs_nbin/4
-      if(paux(i,nb) .le. pmin) then
-            pmin=paux(i,nb)
-            imin(nb)=i
          endif
       enddo
       do i=obs_nbin/2,obs_nbin
          if(paux(i,nb) .ge. pmax2) then
             pmax2=paux(i,nb)
             imax2(nb)=i
+         endif
+      enddo
+!      do i=10,35
+!      do i=15,25
+      do i=imax1(nb),imax2(nb)
+      if(paux(i,nb) .le. pmin) then
+            pmin=paux(i,nb)
+            imin(nb)=i
          endif
       enddo
 
@@ -2076,23 +2084,23 @@ contains
          pmax1=0.
          pmax2=0.
          pmin=1.
-         do i=1,obs_nbin/2
+         do i=1,obs_nbin/3
             if(paux(i,nb) .ge. pmax1) then
                pmax1=paux(i,nb)
                imax1(nb)=i
-            endif
-         enddo
-!         do i=10,35
-         do i=obs_nbin/4,3*obs_nbin/4
-            if(paux(i,nb) .le. pmin) then
-               pmin=paux(i,nb)
-               imin(nb)=i
             endif
          enddo
          do i=obs_nbin/2,obs_nbin
             if(paux(i,nb) .ge. pmax2) then
                pmax2=paux(i,nb)
                imax2(nb)=i
+            endif
+         enddo
+!         do i=10,35
+         do i=imax1(nb),imax2(nb)
+            if(paux(i,nb) .le. pmin) then
+               pmin=paux(i,nb)
+               imin(nb)=i
             endif
          enddo
       enddo
