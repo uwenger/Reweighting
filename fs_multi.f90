@@ -22,10 +22,10 @@
       real(kind=dp) :: bin_energy(0:max_nbin),beta_pr
 
       ! the values of the obsrvable bins and the probablilites:
-      real(kind=dp) :: obsbin_val(0:60),obs_prob(0:60,max_nbeta)
+      real(kind=dp) :: obsbin_val(0:obs_nbin),obs_prob(0:obs_nbin,max_nbeta)
 
       !     for the observable probability distribution:
-      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+      real(kind=dp) :: obs_en_prob(0:obs_nbin,0:max_nbin,0:max_nbeta)
 
       
 !     the spectral density:
@@ -1088,10 +1088,10 @@ contains
 
 !     for binning the observable:
       integer obsbin_number
-      real(kind=dp) :: obsbin_width,obs_prob(0:60,max_nbeta),min_obs,max_obs!   ,obsbin_val(0:60)
+      real(kind=dp) :: obsbin_width,obs_prob(0:obs_nbin,max_nbeta),min_obs,max_obs!   ,obsbin_val(0:obs_nbin)
 
 !!$!     for the observable probability distribution:
-!!$      real(kind=dp) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+!!$      real(kind=dp) :: obs_en_prob(0:obs_nbin,0:max_nbin,0:max_nbeta)
 
 
 !     the spatial and temporal lattice size:
@@ -1175,10 +1175,10 @@ contains
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
 !            read(55,*,end=435) beta_read,act,aux,aux,obs  
-            read(55,*,end=435) beta_read,act,aux,aux,obs
-!---------------------------------------------------
-!     this is for the APE action:
-            act=act/3._dp !divide the action by xi*nc
+!!$            read(55,*,end=435) beta_read,act,aux,aux,obs
+!!$!---------------------------------------------------
+!!$!     this is for the APE action:
+!!$            act=act/3._dp !divide the action by xi*nc
 !$$$!---------------------------------------------------
 !$$$!     this is for the Manton action (Philippe's version):
 !$$$            read(55,*,end=435) beta_read,act,aux,obs
@@ -1234,14 +1234,14 @@ contains
 !!$            elseif(quantity.eq.'P' .or. quantity.eq.'p') then
 !!$               obs = aux
 !!$            endif
-!!$!---------------------------------------------------
-!!$!     this is for Kieran's finite-T FP data:
-!!$!            read(55,*,end=435) beta_read,act,aux,aux,obs
-!!$            ! Version for data after 15 June 2026:
-!!$            read(55,*,end=435) beta_read,act,obs,aux,aux
-!!$            ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
-!!$            ! we need to factor in 1/3.0:
-!!$            act = act/3.0_dp
+!---------------------------------------------------
+!     this is for Kieran's finite-T FP data:
+!            read(55,*,end=435) beta_read,act,aux,aux,obs
+            ! Version for data after 15 June 2026:
+            read(55,*,end=435) beta_read,act,obs,aux,aux
+            ! NOTE: the FP action value from the simulations has \beta/3.0 factored out, so
+            ! we need to factor in 1/3.0:
+            act = act/3.0_dp
 !------------------------------------------------------
 !            act = (1.0-act/(lsize**3*tsize*6.0))*lsize**3*tsize*6.0
             !            print *,beta_read,act,aux,aux,obs
@@ -1347,7 +1347,7 @@ contains
 !     calculate the number of bins:
       nbin=int((max_act(0)-min_act(0))/bin_width)+1
 !     calculate the bin width for the observable:
-      obsbin_width=(max_obs-min_obs)/60.
+      obsbin_width=(max_obs-min_obs)/float(obs_nbin)
       if(nbin.gt.max_nbin) then
          print *,'Number of bins is too big, increase bin width!'
          print *,'or increase max_nbin!'
@@ -1364,7 +1364,7 @@ contains
       enddo
 !     generate table:    bin number <-> obs. value
       obs=min_obs-obsbin_width/2.
-      do i=0,60
+      do i=0,obs_nbin
          obs=obs+obsbin_width
          obsbin_val(i)=obs
       enddo
@@ -1381,11 +1381,11 @@ contains
          en_prob(i,k,0)=0.
          eff_obs(i,k,0)=0.
          eff_obs2(i,k,0)=0.
-         do j=0,60
+         do j=0,obs_nbin
             obs_en_prob(j,i,k)=0.
          enddo
       enddo
-      do i=0,60
+      do i=0,obs_nbin
          obs_prob(i,k)=0.
       enddo
 
@@ -1418,10 +1418,10 @@ contains
 
 !     normalize the obs. prob. distr.:
       aux=0.
-      do i=0,60
+      do i=0,obs_nbin
          aux=aux+obs_prob(i,k)
       enddo
-      do i=0,60
+      do i=0,obs_nbin
          obs_prob(i,k)=obs_prob(i,k)/aux
       enddo
 !     end of loop over the beta values:
@@ -1754,7 +1754,7 @@ contains
          do k=1,nbeta
             aux=aux+exp(-dbeta(k)*bin_energy(i)+fe(k,nb))*nmeas(k)/gtau(k)
          enddo
-         do j=0,60
+         do j=0,obs_nbin
             obs_en_prob(j,i,0)=0.
             do k=1,nbeta
                pk=exp(-dbeta(k)*bin_energy(i)+fe(k,nb))*nmeas(k)/gtau(k)
@@ -1767,7 +1767,7 @@ contains
 !     w(P)=sum_S w(P,S) exp(-dbeta*S):
 !     write out the normalized obs. distributions:
       norm=0.
-      do i=0,60
+      do i=0,obs_nbin
          aux=0.
          do j=0,nbin
 !     Note: dbeta(0)=0 -> exp(-dbeta*S)=0.:
@@ -1776,7 +1776,7 @@ contains
          norm=norm+aux
       enddo
       open(56,file='obs_distr.plo',form='formatted',status='unknown')
-      do i=0,60
+      do i=0,obs_nbin
          aux=0.
          do j=0,nbin
 !     Note: dbeta(0)=0 -> exp(-dbeta*S)=0.:
@@ -1826,10 +1826,10 @@ contains
       real(kind=dp), intent(in) :: en_dens(0:max_nbin,0:nbtrp)
 
 !     for the observable probability distribution:
-      real(kind=dp), intent(in) :: obs_en_prob(0:60,0:max_nbin,0:max_nbeta)
+      real(kind=dp), intent(in) :: obs_en_prob(0:obs_nbin,0:max_nbin,0:max_nbeta)
 
 !     the bin values of the observable:
-      real(kind=dp), intent(in) :: obsbin_val(0:60)
+      real(kind=dp), intent(in) :: obsbin_val(0:obs_nbin)
 
 !     number of energy bins:
       integer nbin
@@ -1838,7 +1838,7 @@ contains
       integer lsize,tsize
 
 !     auxiliary for calculating bootstrap error on obs. distribution:
-      real(kind=dp) :: paux(0:60,0:nbtrp)
+      real(kind=dp) :: paux(0:obs_nbin,0:nbtrp)
 
 !     auxiliaries for finding the extremas:
       integer imin(0:nbtrp), imax1(0:nbtrp),imax2(0:nbtrp)
@@ -1852,7 +1852,7 @@ contains
       do nb=0,nbtrp
          norm=0.
 !     loop over observable bins:
-         do i=0,60
+         do i=0,obs_nbin
             aux=0.
 !     loop over energies:
             do j=0,nbin
@@ -1862,7 +1862,7 @@ contains
             norm=norm+aux
          enddo
 !     norm the distributions:
-         do i=0,60
+         do i=0,obs_nbin
             paux(i,nb)=paux(i,nb)/norm
          enddo
       enddo
@@ -1873,7 +1873,7 @@ contains
 !     calculate the bootstrap error:
 !-----------------------------------
 !     loop over observable bins:
-      do i=0,60
+      do i=0,obs_nbin
 !     the bootstrap average:
          aux=0.
          do nb=1,nbtrp
@@ -1902,20 +1902,22 @@ contains
       pmax1=0.
       pmax2=0.
       pmin=1.
-      do i=1,15
+      !      do i=1,15
+      do i=1,obs_nbin/2
          if(paux(i,nb) .ge. pmax1) then
             pmax1=paux(i,nb)
             imax1(nb)=i
          endif
       enddo
 !      do i=10,35
-      do i=15,25
-         if(paux(i,nb) .le. pmin) then
+!      do i=15,25
+      do i=obs_nbin/4,3*obs_nbin/4
+      if(paux(i,nb) .le. pmin) then
             pmin=paux(i,nb)
             imin(nb)=i
          endif
       enddo
-      do i=25,60
+      do i=obs_nbin/2,obs_nbin
          if(paux(i,nb) .ge. pmax2) then
             pmax2=paux(i,nb)
             imax2(nb)=i
@@ -2074,20 +2076,20 @@ contains
          pmax1=0.
          pmax2=0.
          pmin=1.
-         do i=1,15
+         do i=1,obs_nbin/2
             if(paux(i,nb) .ge. pmax1) then
                pmax1=paux(i,nb)
                imax1(nb)=i
             endif
          enddo
 !         do i=10,35
-         do i=15,25
+         do i=obs_nbin/4,3*obs_nbin/4
             if(paux(i,nb) .le. pmin) then
                pmin=paux(i,nb)
                imin(nb)=i
             endif
          enddo
-         do i=25,60
+         do i=obs_nbin/2,obs_nbin
             if(paux(i,nb) .ge. pmax2) then
                pmax2=paux(i,nb)
                imax2(nb)=i

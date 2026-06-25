@@ -4,6 +4,10 @@ module fs_multi_par
       integer :: max_nbin
       parameter(max_nbin=500)
 
+      !     number of bins for observable:
+      integer :: obs_nbin
+      parameter(obs_nbin=40)
+
 !     number of bootstrap samples:
       integer :: nbtrp
       parameter(nbtrp=1000)
