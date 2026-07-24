@@ -81,9 +81,10 @@
       integer nc
 
 !     auxiliary variables:
-      real(kind=dp) :: e2, e4, aux, aux2
+      real(kind=dp) :: e2, e4, aux, aux2, pmax1, pmax2
       integer i,j,nfail,k
-
+      logical :: equal_prob_found = .False.
+      real(kind=dp) :: beta_equal_prob
 
 !     reading the data:
 !--------------------------------------------------------------------
@@ -203,6 +204,15 @@
 !     print *,'beta(0)=',beta(0)
 !     print *,'beta_max=',beta_max
             endif
+
+            ! Check for the maxima and the minimum:
+            call check_obs_distr_maxima(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize,beta_pr,pmax1,pmax2)
+            if(pmax1 < pmax2 .and. .not.equal_prob_found) then
+               print *,'Equal prob found:'
+               print *,beta_pr,pmax1, pmax2
+               beta_equal_prob = beta_pr
+               equal_prob_found = .True.
+            endif
          endif  
          if(quantity.eq.'C' .or. quantity.eq.'c') then
 !     calculate the specific heat
@@ -318,7 +328,15 @@
                chi_max=obs(0)
                beta_max=beta_pr-beta(0)
             endif
-
+            ! Check for the maxima and the minimum:
+            call check_obs_distr_maxima(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize,beta_pr,pmax1,pmax2)
+            if(pmax1 < pmax2 .and. .not.equal_prob_found) then
+               print *,'Equal prob found:'
+               print *,beta_pr,pmax1, pmax2
+               beta_equal_prob = beta_pr
+               equal_prob_found = .True.
+            endif
+ 
          endif
 
 !     and its bootstrap error:
@@ -340,7 +358,7 @@
 
 !     write it out:
 !--------------------------------------------
-         print *,beta_pr,obs(0),btrp_err
+!!$         print *,beta_pr,obs(0),btrp_err
          if(ndbeta.eq.0) then
             write(47,*) beta_pr,obs(0),btrp_err
          else
@@ -399,7 +417,13 @@
          print '(2f12.7," +/- ",f12.7," S_max_over_V")',1.0_dp/vol,obs(0)/vol,btrp_err/vol
          print *
          ! Calculate the surface tension:
+!!$         call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+
+         ! Calculate the surface tension at equal probability height:
+         dbeta = beta_equal_prob-beta(0)
+         call gen_new_distr(nbin,bin_energy,act_av,dbeta,en_dens,new_en_prob)
          call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+
          
       endif
       if(quantity.eq.'B' .or. quantity.eq.'b') then
@@ -498,7 +522,15 @@
          print *,'***********************************************'
          print '(2f12.7," +/- ",f12.7," L_h")',1.0_dp/vol,obs(0),btrp_err
          print '(2f12.7," +/- ",f12.7," L_h/Tc^4")',1.0_dp/vol,tsize**4*obs(0),tsize**4*btrp_err
-         
+
+         ! Calculate the surface tension at the specific heat peak:
+         call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+
+!!$         ! Calculate the surface tension at equal probability height:
+!!$         dbeta = beta_equal_prob-beta(0)
+!!$         call gen_new_distr(nbin,bin_energy,act_av,dbeta,en_dens,new_en_prob)
+!!$         call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
+
  
       endif
       if(quantity.eq.'R' .or. quantity.eq.'r') then
@@ -1430,11 +1462,12 @@ contains
 !     write out the normalized distributions:
 !      print *,'Writing out the distribution:'
       open(55,file='en_distr.plo',form='formatted',status='unknown')
+      write(55,'("action ",20f15.4)') (beta(k),k=1,nbeta)
       do i=0,nbin
          act=bin_energy(i)+act_av(0)
 !     divide by the bin width for comparison:         
 !         write(55,*) act, en_prob(i)/bin_width
-         write(55,'(10f15.5)') act/(lsize**3*tsize),(en_prob(i,k,0)/float(nmeas(k)),k=1,nbeta)
+         write(55,'(20f15.5)') act/(lsize**3*tsize),(en_prob(i,k,0)/float(nmeas(k)),k=1,nbeta)
       enddo
       close(55)
 
@@ -1808,6 +1841,105 @@ contains
 !--------------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      subroutine check_obs_distr_maxima(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize,beta_pr,pmax1,pmax2)
+
+        
+        ! This routine calculates the probability distribution of the observable and determines the maximum
+
+        use fs_multi_par
+        
+        implicit none
+        
+        !     the spectral densities:
+        real(kind=dp), intent(in) :: en_dens(0:max_nbin,0:nbtrp)
+        
+        !     for the observable probability distribution:
+        real(kind=dp), intent(in) :: obs_en_prob(0:obs_nbin,0:max_nbin,0:max_nbeta)
+        
+        !     the bin values of the observable:
+        real(kind=dp), intent(in) :: obsbin_val(0:obs_nbin)
+
+        !     number of energy bins:
+        integer, intent(in) :: nbin
+
+        !     lattice size in spatial and temporal direction:
+        integer, intent(in) :: lsize,tsize
+
+        ! The current beta value:
+        real(kind=dp), intent(in) :: beta_pr
+
+        ! The two maxima:
+        real(kind=dp), intent(out) :: pmax1, pmax2
+
+        !     auxiliary for calculating bootstrap error on obs. distribution:
+        real(kind=dp) :: paux(0:obs_nbin,0:nbtrp)
+
+        !     auxiliaries for finding the extremas:
+        integer imin(0:nbtrp), imax1(0:nbtrp),imax2(0:nbtrp)
+        real(kind=dp) :: pmin
+
+        !     auxiliaries:
+        integer nb,i,j
+        real(kind=dp) :: norm,aux,err,fact,add,aux0
+
+        !     loop over observable bins:
+        nb=0
+        norm=0.
+        do i=0,obs_nbin
+           aux=0.
+           !     loop over energies:
+           do j=0,nbin
+              !               aux=aux+obs_en_prob(i,j,0)*en_dens(j,nb)
+              aux=aux+obs_en_prob(i,j,0)*new_en_prob(j,nb)
+           enddo
+           paux(i,nb)=aux
+           norm=norm+aux
+        enddo
+        !     norm the distributions:
+        do i=0,obs_nbin
+           paux(i,nb)=paux(i,nb)/norm
+        enddo
+
+        !     now search for the two peaks and the minimum in order to
+        !      determine ln(p_min/p_max):
+!-------------------------------------------------------------
+        !     first do it for extrema position fixed from nb=0:
+        nb=0
+        pmax1=0.
+        pmax2=0.
+        pmin=1.
+        !      do i=1,15
+        do i=1,obs_nbin/3
+           if(paux(i,nb) .ge. pmax1) then
+              pmax1=paux(i,nb)
+              imax1(nb)=i
+           endif
+        enddo
+        do i=obs_nbin/2,obs_nbin
+           if(paux(i,nb) .ge. pmax2) then
+              pmax2=paux(i,nb)
+              imax2(nb)=i
+           endif
+        enddo
+        !      do i=10,35
+        !      do i=15,25
+        do i=imax1(nb),imax2(nb)
+           if(paux(i,nb) .le. pmin) then
+              pmin=paux(i,nb)
+              imin(nb)=i
+           endif
+        enddo
+
+        print '("i_max1, p_max1, i_max2, p_max2=",f12.7,i4,f16.11,i4,f16.11,i4,f16.11)', beta_pr,imax1(0), pmax1, imax2(0), pmax2, imin(0), pmin
+        
+        
+      end subroutine check_obs_distr_maxima
+
+      
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!--------------------------------------------------------------------------
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
       subroutine print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
 
 
@@ -1815,7 +1947,7 @@ contains
 !     of the observable together with the error.
 !     Note:
 !     w(P)=sum_S w(P,S) exp(-dbeta*S)
-!     dbeta(0)=0 -> exp(-dbeta*S)=0.
+!     dbeta(0)=0 -> exp(-dbeta*S)=1.
 
 
       use fs_multi_par
@@ -1832,10 +1964,10 @@ contains
       real(kind=dp), intent(in) :: obsbin_val(0:obs_nbin)
 
 !     number of energy bins:
-      integer nbin
+      integer, intent(in) :: nbin
 
 !     lattice size in spatial and temporal direction:
-      integer lsize,tsize
+      integer, intent(in) :: lsize,tsize
 
 !     auxiliary for calculating bootstrap error on obs. distribution:
       real(kind=dp) :: paux(0:obs_nbin,0:nbtrp)
@@ -1868,12 +2000,13 @@ contains
          enddo
       enddo
 
-      nb=0
-      print *,'nb=0: en_dens(j,nb),new_en_prob(j,nb)'
-      do j=0,nbin
-         print *,en_dens(j,nb),new_en_prob(j,nb)
-      enddo
-      
+!!$      ! Comparison of the density of states and the new energy probablility distribution:
+!!$      nb=0
+!!$      print *,'nb=0: en_dens(j,nb),new_en_prob(j,nb)'
+!!$      do j=0,nbin
+!!$         print *,en_dens(j,nb),new_en_prob(j,nb)
+!!$      enddo
+
       
 !     open file for writing results: 
       open(54,file='obs_btrp_distr.plo',form='formatted', status='unknown')
@@ -2074,7 +2207,7 @@ contains
       !     Print out the surface tension:
       !-----------------------------------
       print *
-      print '(" sigma/T_c^3 = ",3f12.7)',(float(tsize)/float(lsize))**3,norm,err
+      print '(" sigma/T_c^3 = ",3f12.7)',(float(tsize)/float(lsize))**2,norm,err
       print *
 
 
