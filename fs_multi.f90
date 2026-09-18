@@ -330,7 +330,7 @@
             endif
             ! Check for the maxima and the minimum:
             call check_obs_distr_maxima(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize,beta_pr,pmax1,pmax2)
-            if(pmax1 < pmax2 .and. .not.equal_prob_found) then
+            if(pmax1 > pmax2 .and. .not.equal_prob_found) then
                print *,'Equal prob found:'
                print *,beta_pr,pmax1, pmax2
                beta_equal_prob = beta_pr
@@ -524,6 +524,9 @@
          print '(2f12.7," +/- ",f12.7," L_h/Tc^4")',1.0_dp/vol,tsize**4*obs(0),tsize**4*btrp_err
 
          ! Calculate the surface tension at the specific heat peak:
+         print *,'beta_equal_prob=',beta_equal_prob
+         dbeta = beta_equal_prob-beta(0)
+         call gen_new_distr(nbin,bin_energy,act_av,dbeta,en_dens,new_en_prob)
          call print_obs_distr(obs_en_prob,en_dens,nbin,obsbin_val,lsize,tsize)
 
 !!$         ! Calculate the surface tension at equal probability height:
@@ -1909,7 +1912,7 @@ contains
         pmax2=0.
         pmin=1.
         !      do i=1,15
-        do i=1,obs_nbin/3
+        do i=1,obs_nbin/2
            if(paux(i,nb) .ge. pmax1) then
               pmax1=paux(i,nb)
               imax1(nb)=i
@@ -1930,7 +1933,7 @@ contains
            endif
         enddo
 
-        print '("i_max1, p_max1, i_max2, p_max2=",f12.7,i4,f16.11,i4,f16.11,i4,f16.11)', beta_pr,imax1(0), pmax1, imax2(0), pmax2, imin(0), pmin
+        print '("i_max1, p_max1, i_max2, p_max2, imin,=",f12.7,i4,f16.11,i4,f16.11,i4,f16.11)', beta_pr,imax1(0), pmax1, imax2(0), pmax2, imin(0), pmin
         
         
       end subroutine check_obs_distr_maxima
@@ -2044,7 +2047,7 @@ contains
       pmax2=0.
       pmin=1.
       !      do i=1,15
-      do i=1,obs_nbin/3
+      do i=1,obs_nbin/2
          if(paux(i,nb) .ge. pmax1) then
             pmax1=paux(i,nb)
             imax1(nb)=i
